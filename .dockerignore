@@ -1,0 +1,22 @@
+.git
+.github
+.idea
+.vscode
+
+# Backend
+backend/.env
+backend/.env.local
+backend/vendor
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/bootstrap/cache/*
+backend/tests
+
+# Frontend
+frontend/node_modules
+frontend/dist
+
+# Misc
+*.log
