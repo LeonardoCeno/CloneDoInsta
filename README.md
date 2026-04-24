@@ -18,11 +18,13 @@ Aguarde ~30s para o MySQL inicializar e as migrations rodarem automaticamente.
 
 **2. Acesse:**
 
-| Serviço  | URL                        |
-|----------|----------------------------|
-| Frontend | http://localhost:3000      |
-| API      | http://localhost:8000/api  |
-| Health   | http://localhost:8000/up   |
+| Serviço       | URL                              |
+|---------------|----------------------------------|
+| Frontend      | http://localhost:3000            |
+| API           | http://localhost:8000/api        |
+| Swagger UI    | http://localhost:8000/docs       |
+| OpenAPI YAML  | http://localhost:8000/api/openapi.yaml |
+| Health        | http://localhost:8000/up         |
 
 ## Seed (dados de exemplo, não são obrigatórios)
 
