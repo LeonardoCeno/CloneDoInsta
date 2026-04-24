@@ -16,6 +16,7 @@ const navItems = [
   { name: 'feed', label: 'Home', icon: 'home' },
   { name: 'descobrir', label: 'Buscar', icon: 'search' },
   { name: 'criar', label: 'Criar', icon: 'create' },
+  { name: 'salvos', label: 'Salvos', icon: 'save' },
   { name: 'perfil', label: 'Perfil', icon: 'profile' },
 ]
 

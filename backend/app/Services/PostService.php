@@ -45,6 +45,7 @@ class PostService
             ->with('user')
             ->withPostCounts()
             ->withLikedByViewer($viewer)
+            ->withSavedByViewer($viewer)
             ->latest()
             ->paginate($perPage);
     }
@@ -54,6 +55,7 @@ class PostService
         return Post::with('user')
             ->withPostCounts()
             ->withLikedByViewer($viewer)
+            ->withSavedByViewer($viewer)
             ->findOrFail($id);
     }
 }

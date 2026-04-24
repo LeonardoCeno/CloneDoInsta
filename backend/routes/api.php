@@ -8,6 +8,7 @@ use App\Http\Controllers\LikeController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SaveController;
 use Illuminate\Support\Facades\Route;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/me',                   [ProfileController::class, 'showMe']);
     Route::put('users/me',                   [ProfileController::class, 'update']);
     Route::post('users/me/avatar',           [ProfileController::class, 'avatar']);
+    Route::get('users/me/saved',             [SaveController::class, 'mySaved']);
 
     // Profile by username (lookup)
     Route::get('users/{username}', [ProfileController::class, 'show'])
@@ -59,9 +61,11 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('posts/{post}',        [PostController::class, 'show']);
     Route::put('posts/{post}',        [PostController::class, 'update']);
     Route::delete('posts/{post}',     [PostController::class, 'destroy']);
-    Route::post('posts/{post}/like',  [LikeController::class, 'store']);
+    Route::post('posts/{post}/like',     [LikeController::class, 'store']);
     Route::delete('posts/{post}/unlike', [LikeController::class, 'destroy']);
     Route::get('posts/{post}/likes',     [LikeController::class, 'index']);
+    Route::post('posts/{post}/save',     [SaveController::class, 'store']);
+    Route::delete('posts/{post}/unsave', [SaveController::class, 'destroy']);
     Route::post('posts/{post}/comments', [CommentController::class, 'store']);
     Route::get('posts/{post}/comments',  [CommentController::class, 'index']);
 

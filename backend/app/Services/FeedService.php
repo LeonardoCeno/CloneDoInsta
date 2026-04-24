@@ -16,6 +16,7 @@ class FeedService
             ->with('user')
             ->withPostCounts()
             ->withLikedByViewer($user)
+            ->withSavedByViewer($user)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->cursorPaginate($perPage);

@@ -12,7 +12,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['toggle-like', 'submit-comment'])
+const emit = defineEmits(['toggle-like', 'toggle-save', 'submit-comment'])
 
 const { currentUser } = useAuth()
 
@@ -158,9 +158,15 @@ function handleCommentSubmit() {
           </RouterLink>
         </div>
 
-        <RouterLink :to="postLink" class="feed-post__icon-button" aria-label="Salvar post">
+        <button
+          class="feed-post__icon-button"
+          :class="{ 'is-saved': post.savedByMe }"
+          type="button"
+          :aria-label="post.savedByMe ? 'Remover dos salvos' : 'Salvar post'"
+          @click="emit('toggle-save', post.id)"
+        >
           <AppIcon name="save" />
-        </RouterLink>
+        </button>
       </div>
 
       <p class="feed-post__likes">{{ likeLabel }}</p>
@@ -309,6 +315,10 @@ function handleCommentSubmit() {
 
 .feed-post__icon-button.is-active {
   color: var(--app-danger);
+}
+
+.feed-post__icon-button.is-saved {
+  color: var(--app-link);
 }
 
 .feed-post__icon-button:disabled {

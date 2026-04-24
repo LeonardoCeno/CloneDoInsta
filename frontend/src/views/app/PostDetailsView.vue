@@ -5,6 +5,7 @@ import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
 import { useAuth } from '@/composables/useAuth'
 import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
+import * as savesService from '@/services/saves.service'
 import * as commentsService from '@/services/comments.service'
 import { extractErrorMessage } from '@/services/api'
 import { normalizePost, useFeed } from '@/composables/useFeed'
@@ -32,6 +33,7 @@ const commentsLoading = ref(false)
 const commentText = ref('')
 const isSubmittingComment = ref(false)
 const likePending = ref(false)
+const savePending = ref(false)
 const deletePending = ref(false)
 
 const postId = computed(() =>
@@ -166,6 +168,26 @@ async function handleToggleLike() {
     feedbackMessage.value = extractErrorMessage(error, 'Não foi possível atualizar a curtida.')
   } finally {
     likePending.value = false
+  }
+}
+
+async function handleToggleSave() {
+  if (!post.value || savePending.value) {
+    return
+  }
+
+  savePending.value = true
+
+  try {
+    const action = post.value.savedByMe ? savesService.unsave : savesService.save
+    const response = await action(post.value.id)
+    post.value = { ...post.value, savedByMe: Boolean(response.saved) }
+    applyPostPatch(post.value.id, { savedByMe: post.value.savedByMe })
+    feedbackMessage.value = post.value.savedByMe ? 'Post salvo.' : 'Post removido dos salvos.'
+  } catch (error) {
+    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível salvar o post.')
+  } finally {
+    savePending.value = false
   }
 }
 
@@ -338,6 +360,16 @@ watch(
             @click="handleToggleLike"
           >
             {{ post.likedByMe ? 'Descurtir' : 'Curtir post' }}
+          </button>
+
+          <button
+            class="post-details__action"
+            :class="{ 'is-active': post.savedByMe }"
+            type="button"
+            :disabled="savePending"
+            @click="handleToggleSave"
+          >
+            {{ post.savedByMe ? 'Remover dos salvos' : 'Salvar post' }}
           </button>
 
           <RouterLink class="btn btn-outline-secondary" :to="{ name: 'feed' }">

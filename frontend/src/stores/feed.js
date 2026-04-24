@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import * as feedService from '@/services/feed.service'
 import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
+import * as savesService from '@/services/saves.service'
 import * as commentsService from '@/services/comments.service'
 import { normalizeUser } from '@/stores/profileUtils'
 
@@ -35,6 +36,7 @@ export function normalizePost(rawPost) {
     likesCount: Number(rawPost.likes_count ?? rawPost.likesCount ?? 0),
     commentsCount: Number(rawPost.comments_count ?? rawPost.commentsCount ?? 0),
     likedByMe: Boolean(rawPost.liked_by_me ?? rawPost.likedByMe ?? false),
+    savedByMe: Boolean(rawPost.saved_by_me ?? rawPost.savedByMe ?? false),
     createdAt: rawPost.created_at ?? rawPost.createdAt ?? null,
     updatedAt: rawPost.updated_at ?? rawPost.updatedAt ?? null,
   }
@@ -47,6 +49,11 @@ export const useFeedStore = defineStore('feed', {
     feedHasNext: false,
     feedLoaded: false,
     feedLoading: false,
+    savedPosts: [],
+    savedPage: 1,
+    savedHasNext: false,
+    savedLoaded: false,
+    savedLoading: false,
   }),
   actions: {
     async fetchFeed({ reset = false } = {}) {
@@ -109,6 +116,48 @@ export const useFeedStore = defineStore('feed', {
         likesCount: Number(response.likes_count ?? post.likesCount),
       })
       return response
+    },
+
+    async toggleSave(post) {
+      if (!post) {
+        return null
+      }
+
+      const action = post.savedByMe ? savesService.unsave : savesService.save
+      const response = await action(post.id)
+      const savedByMe = Boolean(response.saved)
+      this.applyPostPatch(post.id, { savedByMe })
+      const idx = this.savedPosts.findIndex((p) => p.id === post.id)
+      if (!savedByMe && idx >= 0) {
+        this.savedPosts.splice(idx, 1)
+      }
+      return response
+    },
+
+    async fetchSaved({ reset = false } = {}) {
+      if (this.savedLoading) {
+        return
+      }
+
+      this.savedLoading = true
+
+      try {
+        const page = reset ? 1 : this.savedPage + 1
+        const response = await savesService.mySaved(15, page)
+        const normalized = (response.data ?? []).map(normalizePost).filter(Boolean)
+
+        if (reset) {
+          this.savedPosts = normalized
+        } else {
+          this.savedPosts = [...this.savedPosts, ...normalized]
+        }
+
+        this.savedPage = Number(response.current_page ?? page)
+        this.savedHasNext = Boolean(response.next_page_url)
+        this.savedLoaded = true
+      } finally {
+        this.savedLoading = false
+      }
     },
 
     async addComment(postId, body) {

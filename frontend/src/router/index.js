@@ -12,6 +12,7 @@ import PostDetailsView from '@/views/app/PostDetailsView.vue'
 import ProfileView from '@/views/app/ProfileView.vue'
 import EditProfileView from '@/views/app/EditProfileView.vue'
 import ProfileConnectionsView from '@/views/app/ProfileConnectionsView.vue'
+import SavedPostsView from '@/views/app/SavedPostsView.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
@@ -107,6 +108,17 @@ const routes = [
           sectionTitle: 'Conexões',
           sectionDescription: 'Navegue pelas listas de seguidores e de perfis seguidos sem sair do fluxo principal.',
           footerLabel: 'As relações ficam persistidas no backend e afetam o feed e o perfil em tempo real.',
+        },
+      },
+      {
+        path: 'salvos',
+        name: 'salvos',
+        component: SavedPostsView,
+        meta: {
+          navItem: 'salvos',
+          sectionTitle: 'Posts Salvos',
+          sectionDescription: 'Acesse todas as publicações que você salvou para ver depois.',
+          footerLabel: 'Posts salvos ficam disponíveis aqui independente de quem você segue.',
         },
       },
     ],

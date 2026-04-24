@@ -22,6 +22,11 @@ class Post extends Model
         return $this->hasMany(Like::class);
     }
 
+    public function saves()
+    {
+        return $this->hasMany(Save::class);
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class)->latest();
@@ -37,6 +42,11 @@ class Post extends Model
         return $this->likes()->where('user_id', $user->id)->exists();
     }
 
+    public function isSavedBy(User $user): bool
+    {
+        return $this->saves()->where('user_id', $user->id)->exists();
+    }
+
     public function scopeWithPostCounts(Builder $query): void
     {
         $query->withCount(['likes', 'comments']);
@@ -46,6 +56,13 @@ class Post extends Model
     {
         if ($viewer) {
             $query->withExists(['likes as liked_by_me' => fn ($q) => $q->where('user_id', $viewer->id)]);
+        }
+    }
+
+    public function scopeWithSavedByViewer(Builder $query, ?User $viewer): void
+    {
+        if ($viewer) {
+            $query->withExists(['saves as saved_by_me' => fn ($q) => $q->where('user_id', $viewer->id)]);
         }
     }
 }

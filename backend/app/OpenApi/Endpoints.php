@@ -297,6 +297,35 @@ namespace App\OpenApi;
  *     @OA\Response(response=404, ref="#/components/responses/404")
  * )
  *
+ * @OA\Post(path="/posts/{post}/save", tags={"Salvos"}, summary="Salvar post",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Post salvo",
+ *         @OA\JsonContent(@OA\Property(property="saved", type="boolean", example=true))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Delete(path="/posts/{post}/unsave", tags={"Salvos"}, summary="Remover post dos salvos",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Post removido dos salvos",
+ *         @OA\JsonContent(@OA\Property(property="saved", type="boolean", example=false))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Get(path="/users/me/saved", tags={"Salvos"}, summary="Posts salvos pelo usuário autenticado",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=15, maximum=100)),
+ *     @OA\Response(response=200, description="Posts salvos paginados",
+ *         @OA\JsonContent(ref="#/components/schemas/PaginatedPosts")
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
  * @OA\Post(path="/posts/{post}/comments", tags={"Comentários"}, summary="Comentar em um post",
  *     security={{"bearerAuth":{}}},
  *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),

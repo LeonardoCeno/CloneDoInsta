@@ -47,7 +47,8 @@ namespace App\OpenApi;
  *     @OA\Property(property="user", ref="#/components/schemas/User"),
  *     @OA\Property(property="likes_count", type="integer", example=42),
  *     @OA\Property(property="comments_count", type="integer", example=7),
- *     @OA\Property(property="liked_by_me", type="boolean", nullable=true, example=false)
+ *     @OA\Property(property="liked_by_me", type="boolean", nullable=true, example=false),
+ *     @OA\Property(property="saved_by_me", type="boolean", nullable=true, example=false)
  * )
  *
  * @OA\Schema(
