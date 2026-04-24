@@ -24,7 +24,7 @@ Aguarde ~30s para o MySQL inicializar e as migrations rodarem automaticamente.
 | API      | http://localhost:8000/api  |
 | Health   | http://localhost:8000/up   |
 
-## Seed (dados de exemplo)
+## Seed (dados de exemplo, não são obrigatórios)
 
 ```bash
 docker compose exec app php artisan db:seed
