@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaveController;
+use App\Http\Controllers\StoryController;
 use Illuminate\Support\Facades\Route;
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
@@ -25,6 +26,12 @@ Route::prefix('auth')->group(function () {
 
 // ── Protected ─────────────────────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
+
+    // Stories
+    Route::get('stories/feed',            [StoryController::class, 'feed']);
+    Route::post('stories',                [StoryController::class, 'store']);
+    Route::post('stories/{story}/seen',   [StoryController::class, 'markSeen']);
+    Route::delete('stories/{story}',      [StoryController::class, 'destroy']);
 
     // Feed
     Route::get('feed', [FeedController::class, 'index']);

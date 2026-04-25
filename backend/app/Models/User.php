@@ -48,6 +48,11 @@ class User extends Authenticatable
         return $this->hasMany(Save::class);
     }
 
+    public function stories()
+    {
+        return $this->hasMany(Story::class)->latest();
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);

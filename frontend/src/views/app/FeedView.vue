@@ -1,8 +1,13 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import PostCard from '@/components/feed/PostCard.vue'
+import StoriesBar from '@/components/stories/StoriesBar.vue'
+import StoryViewer from '@/components/stories/StoryViewer.vue'
 import { useFeed } from '@/composables/useFeed'
 import { extractErrorMessage } from '@/services/api'
+import { useStoriesStore } from '@/stores/stories'
+
+const storiesStore = useStoriesStore()
 
 const feedbackMessage = ref('')
 const loadError = ref('')
@@ -21,7 +26,10 @@ const {
 
 onMounted(async () => {
   try {
-    await fetchFeed({ reset: true })
+    await Promise.all([
+      fetchFeed({ reset: true }),
+      storiesStore.fetchFeed(),
+    ])
   } catch (error) {
     loadError.value = extractErrorMessage(error, 'Não foi possível carregar o feed agora.')
   }
@@ -75,6 +83,9 @@ async function handleLoadMore() {
 
 <template>
   <section class="feed-view">
+    <StoriesBar v-if="storiesStore.loaded || storiesStore.loading" />
+
+    <StoryViewer />
     <p v-if="loadError" class="feed-view__feedback is-error" role="alert">
       {{ loadError }}
     </p>
