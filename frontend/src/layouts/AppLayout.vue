@@ -221,13 +221,6 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
       </aside>
 
       <div class="ig-content">
-        <header v-if="isFeedRoute" class="ig-topbar">
-          <RouterLink class="ig-search" :to="{ name: 'descobrir' }">
-            <AppIcon name="search" />
-            <span>Pesquisar perfis</span>
-          </RouterLink>
-        </header>
-
         <main class="ig-main" :class="`ig-main--${contentMode}`">
           <component :is="Component" />
         </main>

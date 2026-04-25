@@ -107,7 +107,7 @@ function handleCommentSubmit() {
 </script>
 
 <template>
-  <article class="feed-post card border-0">
+  <article class="feed-post">
     <header class="feed-post__header">
       <RouterLink :to="authorLink" class="feed-post__author">
         <ProfileAvatar
@@ -225,13 +225,10 @@ function handleCommentSubmit() {
 <style scoped>
 .feed-post {
   overflow: hidden;
-  border-radius: 0.9rem;
-  background: var(--app-surface);
-}
-
-.feed-post__header,
-.feed-post__body {
-  padding: 0.9rem 1rem 0;
+  border-radius: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--app-border);
+  padding-bottom: 0.5rem;
 }
 
 .feed-post__header {
@@ -239,6 +236,7 @@ function handleCommentSubmit() {
   align-items: center;
   justify-content: space-between;
   gap: 0.85rem;
+  padding: 0.85rem 0.25rem 0.75rem;
 }
 
 .feed-post__author {
@@ -257,7 +255,8 @@ function handleCommentSubmit() {
 
 .feed-post__author-meta strong {
   color: var(--app-text);
-  font-size: 0.92rem;
+  font-size: 0.93rem;
+  font-weight: 600;
 }
 
 .feed-post__author-meta span,
@@ -286,6 +285,8 @@ function handleCommentSubmit() {
 
 .feed-post__media-link {
   display: block;
+  border-radius: 0.1rem;
+  overflow: hidden;
 }
 
 .feed-post__media {
@@ -297,7 +298,7 @@ function handleCommentSubmit() {
 }
 
 .feed-post__body {
-  padding-bottom: 0;
+  padding: 0 0.25rem;
 }
 
 .feed-post__toolbar {
@@ -305,26 +306,27 @@ function handleCommentSubmit() {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  padding-top: 0.1rem;
 }
 
 .feed-post__toolbar-group {
   display: flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.05rem;
 }
 
 .feed-post__icon-button {
   display: grid;
   place-items: center;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.4rem;
+  height: 2.4rem;
   padding: 0;
   border: 0;
   color: var(--app-text);
   background: none;
   text-decoration: none;
-  transition: color 180ms ease;
+  transition: transform 120ms ease, color 160ms ease;
 }
 
 .feed-post__icon-button:hover,
@@ -338,8 +340,12 @@ function handleCommentSubmit() {
   color: var(--app-danger);
 }
 
+.feed-post__icon-button.is-active:hover {
+  color: var(--app-danger);
+}
+
 .feed-post__icon-button.is-saved {
-  color: var(--app-link);
+  color: var(--app-text);
 }
 
 .feed-post__icon-button.is-reposted {
@@ -352,37 +358,41 @@ function handleCommentSubmit() {
 }
 
 .feed-post__likes {
-  margin: 0 0 0.55rem;
+  margin: 0 0 0.45rem;
   color: var(--app-text);
   font-size: 0.92rem;
   font-weight: 700;
 }
 
 .feed-post__caption {
-  margin: 0 0 0.45rem;
+  margin: 0 0 0.4rem;
   color: var(--app-text);
-  line-height: 1.65;
+  line-height: 1.6;
   white-space: pre-line;
+  font-size: 0.92rem;
 }
 
 .feed-post__caption-link {
-  margin-right: 0.35rem;
+  margin-right: 0.3rem;
   color: var(--app-text);
   font-weight: 700;
   text-decoration: none;
 }
 
 .feed-post__meta-link {
-  margin: 0 0 0.45rem;
+  display: block;
+  margin: 0 0 0.35rem;
   color: var(--app-muted);
-  font-size: 0.9rem;
+  font-size: 0.86rem;
   text-decoration: none;
 }
 
 .feed-post__timestamp {
   display: block;
-  margin-bottom: 0.75rem;
-  letter-spacing: 0.06em;
+  margin-bottom: 0.6rem;
+  color: var(--app-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
@@ -391,8 +401,7 @@ function handleCommentSubmit() {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
-  margin: 0 -1rem;
-  padding: 0.85rem 1rem;
+  padding: 0.7rem 0;
   border-top: 1px solid var(--app-border);
 }
 
@@ -402,7 +411,12 @@ function handleCommentSubmit() {
   padding: 0;
   border: 0;
   color: var(--app-text);
+  font-size: 0.9rem;
   background: transparent;
+}
+
+.feed-post__comment-input::placeholder {
+  color: var(--app-muted);
 }
 
 .feed-post__comment-input:focus-visible {
@@ -414,11 +428,12 @@ function handleCommentSubmit() {
   border: 0;
   color: var(--app-link);
   background: none;
+  font-size: 0.88rem;
   font-weight: 700;
 }
 
 .feed-post__submit:disabled {
   cursor: not-allowed;
-  opacity: 0.45;
+  opacity: 0.35;
 }
 </style>

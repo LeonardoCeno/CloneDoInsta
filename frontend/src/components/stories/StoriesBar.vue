@@ -148,11 +148,10 @@ function getRealGroupIdx(otherGroupUser) {
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  padding: 0.85rem 1rem;
+  padding: 0.85rem 0.25rem 1rem;
   overflow-x: auto;
   scrollbar-width: none;
-  border-radius: 0.9rem;
-  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
 }
 
 .stories-bar::-webkit-scrollbar {

@@ -157,10 +157,14 @@ async function handleLoadMore() {
 </template>
 
 <style scoped>
-.feed-view,
+.feed-view {
+  display: grid;
+  gap: 0;
+}
+
 .feed-view__stack {
   display: grid;
-  gap: 1rem;
+  gap: 0;
 }
 
 .feed-view__feedback {
@@ -179,9 +183,7 @@ async function handleLoadMore() {
 }
 
 .feed-view__empty {
-  padding: 1.5rem;
-  border-radius: 1rem;
-  background: var(--app-surface);
+  padding: 2rem 0.5rem;
 }
 
 .feed-view__empty h3 {
