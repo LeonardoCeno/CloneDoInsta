@@ -86,6 +86,18 @@ function onScroll() {
 function onKeydown(e) {
   if (e.key === 'ArrowDown') { e.preventDefault(); goNext() }
   if (e.key === 'ArrowUp') { e.preventDefault(); goPrev() }
+  if (e.key === ' ') {
+    e.preventDefault()
+    const video = getVideoAt(activeIndex.value)
+    if (!video) return
+    if (video.paused) {
+      video.play().catch(() => {})
+      showFlash('play')
+    } else {
+      video.pause()
+      showFlash('pause')
+    }
+  }
 }
 
 async function toggleLike(post) {
@@ -166,14 +178,51 @@ function formatCount(n) {
   return String(n)
 }
 
+const lightboxSrc = ref(null)
+const isMuted = ref(true)
+const flashIcon = ref(null)
+let flashTimer = null
+
 function getVideoAt(idx) {
   const items = containerRef.value?.querySelectorAll('.reel-item')
   return items?.[idx]?.querySelector('video') ?? null
 }
 
+function showFlash(icon) {
+  flashIcon.value = icon
+  clearTimeout(flashTimer)
+  flashTimer = setTimeout(() => { flashIcon.value = null }, 700)
+}
+
+function handleMediaClick(post, idx) {
+  if (!post.isVideo) {
+    lightboxSrc.value = post.imageUrl
+    return
+  }
+  const video = getVideoAt(idx)
+  if (!video) return
+  if (video.paused) {
+    video.play().catch(() => {})
+    showFlash('play')
+  } else {
+    video.pause()
+    showFlash('pause')
+  }
+}
+
+function toggleMute() {
+  isMuted.value = !isMuted.value
+  const video = getVideoAt(activeIndex.value)
+  if (video) video.muted = isMuted.value
+}
+
 watch(activeIndex, (newIdx, oldIdx) => {
   getVideoAt(oldIdx)?.pause()
-  getVideoAt(newIdx)?.play().catch(() => {})
+  const next = getVideoAt(newIdx)
+  if (next) {
+    next.muted = isMuted.value
+    next.play().catch(() => {})
+  }
 })
 
 onMounted(async () => {
@@ -201,23 +250,29 @@ onUnmounted(() => {
       class="reel-item"
       :class="{ 'is-active': idx === activeIndex }"
     >
-      <!-- Image -->
+      <!-- Media -->
       <div class="reel-item__media">
-        <RouterLink
-          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+        <div
           class="reel-item__media-link"
-          :aria-label="`Ver post de @${post.author.username}`"
+          :class="{ 'reel-item__media-link--photo': !post.isVideo }"
+          @click="handleMediaClick(post, idx)"
         >
           <MediaDisplay
             :src="post.imageUrl"
             :alt="post.imageAlt"
             :is-video="post.isVideo"
             :muted="true"
-            :controls="true"
             :loop="true"
             class="reel-item__img"
           />
-        </RouterLink>
+        </div>
+
+        <!-- Play/pause flash -->
+        <Transition name="flash">
+          <div v-if="post.isVideo && flashIcon && idx === activeIndex" class="reel-item__flash">
+            <AppIcon :name="flashIcon" />
+          </div>
+        </Transition>
 
         <!-- Bottom overlay: author + caption -->
         <div class="reel-item__overlay">
@@ -303,6 +358,18 @@ onUnmounted(() => {
           </RouterLink>
         </div>
 
+        <!-- Mute (only for video reels) -->
+        <div v-if="post.isVideo" class="reel-item__action">
+          <button
+            class="reel-item__action-btn"
+            type="button"
+            :aria-label="isMuted ? 'Ativar som' : 'Silenciar'"
+            @click="toggleMute"
+          >
+            <AppIcon :name="isMuted ? 'volume-x' : 'volume'" />
+          </button>
+        </div>
+
         <div class="reel-item__nav">
           <button
             class="reel-item__nav-btn"
@@ -331,6 +398,14 @@ onUnmounted(() => {
       <p>Nenhum post disponível ainda.</p>
     </div>
   </div>
+
+  <!-- Lightbox -->
+  <Teleport to="body">
+    <div v-if="lightboxSrc" class="reel-lightbox" @click="lightboxSrc = null">
+      <img :src="lightboxSrc" class="reel-lightbox__img" alt="" @click.stop />
+      <button class="reel-lightbox__close" type="button" @click="lightboxSrc = null">✕</button>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -368,6 +443,10 @@ onUnmounted(() => {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.reel-item__media-link--photo {
+  cursor: zoom-in;
 }
 
 .reel-item__img {
@@ -550,6 +629,76 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   color: var(--app-muted);
+}
+
+/* Play/pause flash */
+.reel-item__flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.reel-item__flash .app-icon {
+  width: 4rem;
+  height: 4rem;
+  padding: 1rem;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+}
+
+.flash-enter-active {
+  transition: opacity 100ms ease;
+}
+.flash-leave-active {
+  transition: opacity 400ms ease;
+}
+.flash-enter-from,
+.flash-leave-to {
+  opacity: 0;
+}
+
+/* Lightbox */
+.reel-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.92);
+  cursor: zoom-out;
+}
+
+.reel-lightbox__img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  cursor: default;
+}
+
+.reel-lightbox__close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.reel-lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 /* Rotate chevrons to up/down arrows */

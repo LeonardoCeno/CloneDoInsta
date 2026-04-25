@@ -1,5 +1,7 @@
 <script setup>
-defineProps({
+import { ref, onMounted, watch } from 'vue'
+
+const props = defineProps({
   src: { type: String, required: true },
   alt: { type: String, default: '' },
   isVideo: { type: Boolean, default: false },
@@ -9,16 +11,26 @@ defineProps({
   muted: { type: Boolean, default: true },
   controls: { type: Boolean, default: false },
 })
+
+const videoEl = ref(null)
+
+onMounted(() => {
+  if (videoEl.value) videoEl.value.muted = props.muted
+})
+
+watch(() => props.muted, (val) => {
+  if (videoEl.value) videoEl.value.muted = val
+})
 </script>
 
 <template>
   <div class="media-wrap" :class="{ 'media-wrap--video': isVideo }">
     <video
       v-if="isVideo"
+      ref="videoEl"
       :src="src"
       :autoplay="autoplay"
       :loop="loop"
-      :muted="muted"
       :controls="controls && !thumbnail"
       playsinline
       preload="metadata"
