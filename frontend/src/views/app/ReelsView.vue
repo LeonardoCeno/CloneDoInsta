@@ -1,0 +1,547 @@
+<script setup>
+import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import AppIcon from '@/components/layout/AppIcon.vue'
+import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import * as postsService from '@/services/posts.service'
+import * as likesService from '@/services/likes.service'
+import * as savesService from '@/services/saves.service'
+import * as followsService from '@/services/follows.service'
+import { normalizePost } from '@/stores/feed'
+import { useAuth } from '@/composables/useAuth'
+
+const { currentUser } = useAuth()
+
+const posts = ref([])
+const currentPage = ref(1)
+const hasMore = ref(false)
+const isLoading = ref(false)
+const activeIndex = ref(0)
+
+const containerRef = ref(null)
+const likePending = ref(new Set())
+const savePending = ref(new Set())
+const followPending = ref(new Set())
+const followedIds = ref(new Set())
+
+const activePost = computed(() => posts.value[activeIndex.value] ?? null)
+
+async function loadPosts({ reset = true } = {}) {
+  if (isLoading.value) return
+  isLoading.value = true
+
+  try {
+    const page = reset ? 1 : currentPage.value + 1
+    const response = await postsService.explore(12, page)
+    const normalized = (response.data ?? []).map(normalizePost).filter(Boolean)
+
+    posts.value = reset ? normalized : [...posts.value, ...normalized]
+    currentPage.value = Number(response.current_page ?? page)
+    hasMore.value = Boolean(response.next_page_url)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+function scrollTo(index) {
+  if (index < 0 || index >= posts.value.length) return
+  activeIndex.value = index
+  const items = containerRef.value?.querySelectorAll('.reel-item')
+  items?.[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function goNext() {
+  if (activeIndex.value < posts.value.length - 1) {
+    scrollTo(activeIndex.value + 1)
+    if (activeIndex.value >= posts.value.length - 3 && hasMore.value) {
+      loadPosts({ reset: false })
+    }
+  }
+}
+
+function goPrev() {
+  if (activeIndex.value > 0) {
+    scrollTo(activeIndex.value - 1)
+  }
+}
+
+function onScroll() {
+  const container = containerRef.value
+  if (!container) return
+  const items = container.querySelectorAll('.reel-item')
+  let nearest = 0
+  let minDist = Infinity
+  items.forEach((el, i) => {
+    const dist = Math.abs(el.getBoundingClientRect().top - container.getBoundingClientRect().top)
+    if (dist < minDist) { minDist = dist; nearest = i }
+  })
+  activeIndex.value = nearest
+  if (nearest >= posts.value.length - 3 && hasMore.value && !isLoading.value) {
+    loadPosts({ reset: false })
+  }
+}
+
+function onKeydown(e) {
+  if (e.key === 'ArrowDown') { e.preventDefault(); goNext() }
+  if (e.key === 'ArrowUp') { e.preventDefault(); goPrev() }
+}
+
+async function toggleLike(post) {
+  if (likePending.value.has(post.id)) return
+  const next = new Set(likePending.value)
+  next.add(post.id)
+  likePending.value = next
+
+  try {
+    if (post.likedByMe) {
+      await likesService.unlike(post.id)
+      post.likedByMe = false
+      post.likesCount = Math.max(0, post.likesCount - 1)
+    } else {
+      await likesService.like(post.id)
+      post.likedByMe = true
+      post.likesCount += 1
+    }
+  } finally {
+    const n = new Set(likePending.value)
+    n.delete(post.id)
+    likePending.value = n
+  }
+}
+
+async function toggleSave(post) {
+  if (savePending.value.has(post.id)) return
+  const next = new Set(savePending.value)
+  next.add(post.id)
+  savePending.value = next
+
+  try {
+    if (post.savedByMe) {
+      await savesService.unsave(post.id)
+      post.savedByMe = false
+    } else {
+      await savesService.save(post.id)
+      post.savedByMe = true
+    }
+  } finally {
+    const n = new Set(savePending.value)
+    n.delete(post.id)
+    savePending.value = n
+  }
+}
+
+async function toggleFollow(author) {
+  if (!author?.id || followPending.value.has(author.id)) return
+  const next = new Set(followPending.value)
+  next.add(author.id)
+  followPending.value = next
+
+  try {
+    if (followedIds.value.has(author.id)) {
+      await followsService.unfollow(author.id)
+      const n = new Set(followedIds.value)
+      n.delete(author.id)
+      followedIds.value = n
+    } else {
+      await followsService.follow(author.id)
+      const n = new Set(followedIds.value)
+      n.add(author.id)
+      followedIds.value = n
+    }
+  } finally {
+    const n = new Set(followPending.value)
+    n.delete(author.id)
+    followPending.value = n
+  }
+}
+
+function isOwnPost(post) {
+  return post.author?.id === currentUser.value?.id
+}
+
+function formatCount(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)} M`
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)} mil`
+  return String(n)
+}
+
+onMounted(async () => {
+  await loadPosts({ reset: true })
+  window.addEventListener('keydown', onKeydown)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
+</script>
+
+<template>
+  <div ref="containerRef" class="reels" @scroll.passive="onScroll">
+    <!-- Loading skeleton -->
+    <div v-if="isLoading && posts.length === 0" class="reels__skeletons">
+      <div v-for="n in 3" :key="n" class="reels__skeleton-item" />
+    </div>
+
+    <div
+      v-for="(post, idx) in posts"
+      :key="post.id"
+      class="reel-item"
+      :class="{ 'is-active': idx === activeIndex }"
+    >
+      <!-- Image -->
+      <div class="reel-item__media">
+        <RouterLink
+          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+          class="reel-item__media-link"
+          :aria-label="`Ver post de @${post.author.username}`"
+        >
+          <img
+            :src="post.imageUrl"
+            :alt="post.imageAlt"
+            class="reel-item__img"
+            :loading="idx === 0 ? 'eager' : 'lazy'"
+          />
+        </RouterLink>
+
+        <!-- Bottom overlay: author + caption -->
+        <div class="reel-item__overlay">
+          <RouterLink
+            :to="{ name: 'perfil', query: { user: post.author.username } }"
+            class="reel-item__author"
+          >
+            <ProfileAvatar
+              :name="post.author.name"
+              :username="post.author.username"
+              :avatar-url="post.author.avatarUrl"
+              :colors="post.author.colors"
+              size="sm"
+            />
+            <span class="reel-item__username">@{{ post.author.username }}</span>
+          </RouterLink>
+
+          <button
+            v-if="!isOwnPost(post)"
+            class="reel-item__follow-btn"
+            type="button"
+            :disabled="followPending.has(post.author.id)"
+            @click="toggleFollow(post.author)"
+          >
+            {{ followedIds.has(post.author.id) ? 'Seguindo' : 'Seguir' }}
+          </button>
+
+          <p v-if="post.caption" class="reel-item__caption">{{ post.caption }}</p>
+        </div>
+      </div>
+
+      <!-- Sidebar: actions + nav -->
+      <aside class="reel-item__sidebar">
+        <!-- Like -->
+        <div class="reel-item__action">
+          <button
+            class="reel-item__action-btn"
+            :class="{ 'is-liked': post.likedByMe }"
+            type="button"
+            :disabled="isOwnPost(post) || likePending.has(post.id)"
+            :aria-label="post.likedByMe ? 'Remover curtida' : 'Curtir'"
+            @click="toggleLike(post)"
+          >
+            <AppIcon name="heart" />
+          </button>
+          <span class="reel-item__action-count">{{ formatCount(post.likesCount) }}</span>
+        </div>
+
+        <!-- Comment -->
+        <div class="reel-item__action">
+          <RouterLink
+            class="reel-item__action-btn"
+            :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+            aria-label="Comentários"
+          >
+            <AppIcon name="comment" />
+          </RouterLink>
+          <span class="reel-item__action-count">{{ formatCount(post.commentsCount) }}</span>
+        </div>
+
+        <!-- Save -->
+        <div class="reel-item__action">
+          <button
+            class="reel-item__action-btn"
+            :class="{ 'is-saved': post.savedByMe }"
+            type="button"
+            :disabled="savePending.has(post.id)"
+            :aria-label="post.savedByMe ? 'Remover dos salvos' : 'Salvar'"
+            @click="toggleSave(post)"
+          >
+            <AppIcon name="save" />
+          </button>
+        </div>
+
+        <!-- Share -->
+        <div class="reel-item__action">
+          <RouterLink
+            class="reel-item__action-btn"
+            :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+            aria-label="Compartilhar"
+          >
+            <AppIcon name="share" />
+          </RouterLink>
+        </div>
+
+        <div class="reel-item__nav">
+          <button
+            class="reel-item__nav-btn"
+            type="button"
+            :disabled="activeIndex === 0"
+            aria-label="Reel anterior"
+            @click="goPrev"
+          >
+            <AppIcon name="chevron-left" />
+          </button>
+          <button
+            class="reel-item__nav-btn reel-item__nav-btn--down"
+            type="button"
+            :disabled="activeIndex === posts.length - 1 && !hasMore"
+            aria-label="Próximo reel"
+            @click="goNext"
+          >
+            <AppIcon name="chevron-left" />
+          </button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="!isLoading && posts.length === 0" class="reels__empty">
+      <p>Nenhum post disponível ainda.</p>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.reels {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.reels::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-item {
+  display: flex;
+  gap: 1rem;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.reel-item__media {
+  position: relative;
+  flex: none;
+  width: calc(100% - 80px);
+  height: 100%;
+  border-radius: 1.25rem;
+  overflow: hidden;
+  background: var(--app-surface);
+}
+
+.reel-item__media-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.reel-item__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.reel-item__overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1.5rem 1.25rem 1.25rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.reel-item__author {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  color: #fff;
+}
+
+.reel-item__username {
+  font-size: 0.93rem;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.reel-item__follow-btn {
+  align-self: flex-start;
+  padding: 0.3rem 0.85rem;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.reel-item__follow-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.reel-item__follow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.reel-item__caption {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.88rem;
+  line-height: 1.5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.reel-item__sidebar {
+  flex: none;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-bottom: 2rem;
+}
+
+.reel-item__action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.reel-item__action-btn {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--app-text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.reel-item__action-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.reel-item__action-btn.is-liked {
+  color: var(--app-danger);
+}
+
+.reel-item__action-btn.is-saved {
+  color: var(--app-link);
+}
+
+.reel-item__action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.reel-item__action-count {
+  font-size: 0.72rem;
+  color: var(--app-muted);
+  font-weight: 600;
+}
+
+.reel-item__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.reel-item__nav-btn {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 1px solid var(--app-border);
+  border-radius: 50%;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.reel-item__nav-btn:hover:not(:disabled) {
+  background: var(--app-surface);
+}
+
+.reel-item__nav-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+/* Skeleton */
+.reels__skeletons {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.reels__skeleton-item {
+  flex: none;
+  height: 100%;
+  border-radius: 1.25rem;
+  background: var(--app-surface-soft);
+  animation: reel-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes reel-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.reels__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--app-muted);
+}
+
+/* Rotate chevrons to up/down arrows */
+.reel-item__nav-btn :deep(.app-icon) {
+  transform: rotate(90deg); /* chevron-left → up arrow */
+}
+
+.reel-item__nav-btn--down :deep(.app-icon) {
+  transform: rotate(-90deg); /* chevron-left → down arrow */
+}
+</style>

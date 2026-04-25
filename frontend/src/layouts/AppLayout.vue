@@ -26,6 +26,7 @@ const { currentUser, logout } = useAuth()
 
 const navItems = [
   { name: 'feed',          label: 'Home',          icon: 'home'     },
+  { name: 'reels',         label: 'Reels',          icon: 'reels'    },
   { name: 'explorar',      label: 'Explorar',       icon: 'discover' },
   { name: 'descobrir',     label: 'Buscar',         icon: 'search'   },
   { name: 'notificacoes',  label: 'Notificações',   icon: 'heart'    },
@@ -36,13 +37,11 @@ const navItems = [
 
 const activeNavName = computed(() => route.meta.navItem ?? route.name)
 const isFeedRoute = computed(() => activeNavName.value === 'feed')
+const isReelsRoute = computed(() => activeNavName.value === 'reels')
 const contentMode = computed(() => {
-  if (isFeedRoute.value) {
-    return 'feed'
-  }
-  if (activeNavName.value === 'perfil') {
-    return 'profile'
-  }
+  if (isFeedRoute.value) return 'feed'
+  if (activeNavName.value === 'perfil') return 'profile'
+  if (isReelsRoute.value) return 'reels'
   return 'default'
 })
 const accountHandle = computed(() =>

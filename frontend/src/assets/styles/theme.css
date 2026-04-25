@@ -289,6 +289,12 @@ textarea::placeholder {
   width: min(100%, 935px);
 }
 
+.ig-main--reels {
+  height: calc(100vh - 3rem);
+  width: min(100%, 680px);
+  overflow: hidden;
+}
+
 .ig-topbar {
   display: flex;
   justify-content: center;
@@ -406,6 +412,17 @@ textarea::placeholder {
   margin: 0;
 }
 
+.ig-layout.is-reels {
+  padding-bottom: 0;
+}
+
+.ig-layout.is-reels .ig-content {
+  padding-top: 1.5rem;
+  padding-bottom: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 @media (max-width: 991.98px) {
   .ig-layout,
   .ig-layout.is-feed,
@@ -462,5 +479,11 @@ textarea::placeholder {
   .ig-main--profile {
     width: 100%;
     padding: 0 1rem;
+  }
+
+  .ig-main--reels {
+    width: 100%;
+    height: calc(100vh - 8rem);
+    padding: 0;
   }
 }

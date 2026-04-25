@@ -15,6 +15,7 @@ import ProfileConnectionsView from '@/views/app/ProfileConnectionsView.vue'
 import SavedPostsView from '@/views/app/SavedPostsView.vue'
 import ExploreView from '@/views/app/ExploreView.vue'
 import NotificationsView from '@/views/app/NotificationsView.vue'
+import ReelsView from '@/views/app/ReelsView.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
@@ -127,6 +128,16 @@ const routes = [
           sectionTitle: 'Explorar',
           sectionDescription: 'Descubra posts de todos os perfis da plataforma.',
           footerLabel: 'Grid de posts aleatórios de toda a rede.',
+        },
+      },
+      {
+        path: 'reels',
+        name: 'reels',
+        component: ReelsView,
+        meta: {
+          navItem: 'reels',
+          sectionTitle: 'Reels',
+          sectionDescription: 'Navegue pelos posts em tela cheia.',
         },
       },
       {
