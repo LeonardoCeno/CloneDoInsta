@@ -12,7 +12,6 @@ class CommentResource extends JsonResource
         return [
             'id'         => $this->id,
             'body'       => $this->body,
-            'user_id'    => $this->user_id,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),
             'user'       => new UserResource($this->whenLoaded('user')),

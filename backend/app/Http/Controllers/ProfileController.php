@@ -82,18 +82,19 @@ class ProfileController extends Controller
 
     public function privacy(Request $request): JsonResponse
     {
-        $user      = $request->user();
+        $user       = $request->user();
         $wasPrivate = (bool) $user->is_private;
 
-        $user->update(['is_private' => !$wasPrivate]);
+        DB::transaction(function () use ($user, $wasPrivate) {
+            $user->update(['is_private' => !$wasPrivate]);
 
-        // Auto-accept all pending follow requests when going public
-        if ($wasPrivate) {
-            DB::table('follows')
-                ->where('following_id', $user->id)
-                ->where('status', 'pending')
-                ->update(['status' => 'accepted']);
-        }
+            if ($wasPrivate) {
+                DB::table('follows')
+                    ->where('following_id', $user->id)
+                    ->where('status', 'pending')
+                    ->update(['status' => 'accepted']);
+            }
+        });
 
         $user->loadCount(['posts', 'followers', 'following']);
 

@@ -191,7 +191,57 @@ namespace App\OpenApi;
  *     security={{"bearerAuth":{}}},
  *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=2),
  *     @OA\Response(response=200, description="Status de follow",
- *         @OA\JsonContent(@OA\Property(property="is_following", type="boolean", example=true))
+ *         @OA\JsonContent(
+ *             @OA\Property(property="is_following", type="boolean", example=true),
+ *             @OA\Property(property="is_pending", type="boolean", example=false)
+ *         )
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Delete(path="/users/{user}/followers", tags={"Social"}, summary="Remover um seguidor",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=2),
+ *     @OA\Response(response=200, description="Seguidor removido",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Seguidor removido."))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Post(path="/users/{user}/follow/accept", tags={"Social"}, summary="Aceitar solicitação de follow",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=2),
+ *     @OA\Response(response=200, description="Solicitação aceita",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Solicitação aceita."))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Post(path="/users/{user}/follow/decline", tags={"Social"}, summary="Recusar solicitação de follow",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=2),
+ *     @OA\Response(response=200, description="Solicitação recusada",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Solicitação recusada."))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Put(path="/users/me/privacy", tags={"Usuários"}, summary="Alternar privacidade do perfil",
+ *     description="Alterna entre perfil público e privado. Ao tornar público, todas as solicitações pendentes são aceitas automaticamente.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(response=200, description="Privacidade atualizada",
+ *         @OA\JsonContent(ref="#/components/schemas/User")
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Delete(path="/users/me", tags={"Usuários"}, summary="Excluir conta",
+ *     description="Remove permanentemente a conta, todos os posts, stories e arquivos de mídia do usuário.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(response=200, description="Conta excluída",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Conta excluída."))
  *     ),
  *     @OA\Response(response=401, ref="#/components/responses/401")
  * )
@@ -201,7 +251,7 @@ namespace App\OpenApi;
  *     @OA\RequestBody(required=true,
  *         @OA\MediaType(mediaType="multipart/form-data",
  *             @OA\Schema(required={"image"},
- *                 @OA\Property(property="image", type="string", format="binary", description="JPEG, PNG ou WebP, máx 10MB"),
+ *                 @OA\Property(property="image", type="string", format="binary", description="JPEG, PNG, WebP, GIF ou MP4. Imagens até 10 MB, vídeos até 100 MB"),
  *                 @OA\Property(property="caption", type="string", maxLength=2200, nullable=true, example="Meu post!")
  *             )
  *         )
@@ -475,7 +525,7 @@ namespace App\OpenApi;
  *     @OA\RequestBody(required=true,
  *         @OA\MediaType(mediaType="multipart/form-data",
  *             @OA\Schema(required={"image"},
- *                 @OA\Property(property="image", type="string", format="binary", description="JPEG, PNG ou WebP, máx 10MB")
+ *                 @OA\Property(property="image", type="string", format="binary", description="JPEG, PNG, WebP, GIF ou MP4. Imagens até 50 MB, vídeos até 50 MB")
  *             )
  *         )
  *     ),

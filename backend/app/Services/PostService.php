@@ -104,13 +104,19 @@ class PostService
             ->latest('created_at')
             ->pluck('post_id');
 
+        if ($repostIds->isEmpty()) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, 1);
+        }
+
+        $placeholders = implode(',', array_fill(0, $repostIds->count(), '?'));
+
         return Post::whereIn('id', $repostIds)
             ->with('user')
             ->withPostCounts()
             ->withLikedByViewer($viewer)
             ->withSavedByViewer($viewer)
             ->withRepostedByViewer($viewer)
-            ->orderByRaw('FIELD(id, ' . $repostIds->implode(',') . ')')
+            ->orderByRaw("FIELD(id, {$placeholders})", $repostIds->all())
             ->paginate($perPage);
     }
 }

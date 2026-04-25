@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -36,15 +37,18 @@ class UserService
 
     public function deleteAccount(User $user): void
     {
-        foreach ($user->posts as $post) {
-            Storage::disk('public')->delete($post->image_path);
-        }
+        $imagePaths = $user->posts->pluck('image_path')->filter()->all();
+        $avatarPath = $user->avatar_path;
 
-        if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
-        }
+        DB::transaction(function () use ($user) {
+            $user->delete();
+        });
 
-        $user->delete();
+        Storage::disk('public')->delete($imagePaths);
+
+        if ($avatarPath) {
+            Storage::disk('public')->delete($avatarPath);
+        }
     }
 
     public function findByUsername(string $username): User
@@ -69,7 +73,7 @@ class UserService
 
     public function suggestions(User $viewer, int $perPage = 20): LengthAwarePaginator
     {
-        $acceptedIds = \Illuminate\Support\Facades\DB::table('follows')
+        $acceptedIds = DB::table('follows')
             ->where('follower_id', $viewer->id)
             ->where('status', 'accepted')
             ->pluck('following_id')

@@ -27,7 +27,7 @@ class StoryController extends Controller
         $groups = $this->stories->feedGroups($request->user());
 
         $data = $groups->map(fn ($g) => [
-            'user'       => (new UserResource($g['user']))->resolve(),
+            'user'       => (new UserResource($g['user']))->toArray($request),
             'stories'    => $g['stories']->map(fn ($s) => (new StoryResource($s))->toArray($request))->values(),
             'has_unseen' => $g['has_unseen'],
         ]);

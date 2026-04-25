@@ -94,7 +94,11 @@ class User extends Authenticatable
 
     public function isFollowing(User $user): bool
     {
-        return $this->following()->where('following_id', $user->id)->exists();
+        return DB::table('follows')
+            ->where('follower_id', $this->id)
+            ->where('following_id', $user->id)
+            ->where('status', 'accepted')
+            ->exists();
     }
 
     public function isFollowPending(User $user): bool

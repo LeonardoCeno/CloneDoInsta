@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Notification;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Carbon;
 
 class NotificationService
 {
@@ -52,6 +51,6 @@ class NotificationService
     {
         Notification::where('user_id', $user->id)
             ->whereNull('read_at')
-            ->update(['read_at' => Carbon::now()]);
+            ->update(['read_at' => now()]);
     }
 }

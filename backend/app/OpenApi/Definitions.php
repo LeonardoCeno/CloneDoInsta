@@ -30,17 +30,20 @@ namespace App\OpenApi;
  *     @OA\Property(property="email", type="string", format="email", example="alice@example.com", description="Visível apenas para o próprio usuário"),
  *     @OA\Property(property="bio", type="string", nullable=true, example="Fotógrafa"),
  *     @OA\Property(property="avatar_url", type="string", nullable=true, example="http://localhost:8000/storage/avatars/alice.jpg"),
+ *     @OA\Property(property="is_private", type="boolean", example=false),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="posts_count", type="integer", example=12),
  *     @OA\Property(property="followers_count", type="integer", example=80),
  *     @OA\Property(property="following_count", type="integer", example=45),
- *     @OA\Property(property="is_following", type="boolean", nullable=true, example=false)
+ *     @OA\Property(property="is_following", type="boolean", nullable=true, example=false),
+ *     @OA\Property(property="is_follow_pending", type="boolean", nullable=true, example=false)
  * )
  *
  * @OA\Schema(
  *     schema="Post",
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="image_url", type="string", example="http://localhost:8000/storage/posts/photo.jpg"),
+ *     @OA\Property(property="is_video", type="boolean", example=false, description="true se a mídia for MP4"),
  *     @OA\Property(property="caption", type="string", nullable=true, example="Pôr do sol incrível"),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time"),
@@ -57,7 +60,6 @@ namespace App\OpenApi;
  *     schema="Comment",
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="body", type="string", example="Que foto linda!"),
- *     @OA\Property(property="user_id", type="integer", example=2),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="updated_at", type="string", format="date-time"),
  *     @OA\Property(property="user", ref="#/components/schemas/User")
@@ -66,8 +68,8 @@ namespace App\OpenApi;
  * @OA\Schema(
  *     schema="Notification",
  *     @OA\Property(property="id", type="integer", example=1),
- *     @OA\Property(property="type", type="string", enum={"like","comment","follow"}, example="like"),
- *     @OA\Property(property="data", type="object", description="Payload variável por tipo"),
+ *     @OA\Property(property="type", type="string", enum={"like","comment","follow","follow_request"}, example="like"),
+ *     @OA\Property(property="data", type="object", description="Payload variável por tipo. Contém actor_id, actor_username e opcionalmente post_id"),
  *     @OA\Property(property="read_at", type="string", format="date-time", nullable=true),
  *     @OA\Property(property="created_at", type="string", format="date-time")
  * )
@@ -76,6 +78,7 @@ namespace App\OpenApi;
  *     schema="Story",
  *     @OA\Property(property="id", type="integer", example=1),
  *     @OA\Property(property="image_url", type="string", example="http://localhost:8000/storage/stories/abc.jpg"),
+ *     @OA\Property(property="is_video", type="boolean", example=false, description="true se a mídia for MP4"),
  *     @OA\Property(property="seen_by_me", type="boolean", example=false),
  *     @OA\Property(property="created_at", type="string", format="date-time"),
  *     @OA\Property(property="expires_at", type="string", format="date-time", description="24h após criação")
