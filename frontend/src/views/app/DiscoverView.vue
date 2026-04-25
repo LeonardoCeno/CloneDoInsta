@@ -34,37 +34,24 @@ watch(searchQuery, (query) => {
   }
 
   debounceTimer = setTimeout(() => {
-    searchPeople(query.trim())
+    searchPeopleInner(query.trim())
   }, 350)
 })
-
-async function searchPeople(query) {
-  isSearching.value = true
-  isLoading.value = true
-  loadError.value = ''
-
-  try {
-    const response = await usersService.search(query, 30)
-    people.value = (response.data ?? []).map(normalizeUser).filter(Boolean)
-    totalPeople.value = Number(response.total ?? people.value.length)
-    hasMore.value = false
-  } catch (error) {
-    loadError.value = extractErrorMessage(error, 'Não foi possível pesquisar agora.')
-  } finally {
-    isLoading.value = false
-    isSearching.value = false
-  }
-}
 
 function clearSearch() {
   searchQuery.value = ''
 }
 
 const viewerFollowingSet = ref(new Set())
+const pendingFollowIds = ref(new Set())
 const pendingTargets = ref(new Set())
 
 function isFollowing(account) {
   return viewerFollowingSet.value.has(account.id)
+}
+
+function isFollowPending(account) {
+  return pendingFollowIds.value.has(account.id)
 }
 
 function getProfileLink(username) {
@@ -74,18 +61,34 @@ function getProfileLink(username) {
   return { name: 'perfil', query: { user: username } }
 }
 
-async function loadViewerFollowing() {
-  if (!currentUser.value?.id) {
-    viewerFollowingSet.value = new Set()
-    return
+function seedSetsFromPeople(users) {
+  const following = new Set(viewerFollowingSet.value)
+  const pending = new Set(pendingFollowIds.value)
+  for (const u of users) {
+    if (u.isFollowing) following.add(u.id)
+    if (u.isFollowPending) pending.add(u.id)
   }
+  viewerFollowingSet.value = following
+  pendingFollowIds.value = pending
+}
+
+async function searchPeopleInner(query) {
+  isSearching.value = true
+  isLoading.value = true
+  loadError.value = ''
 
   try {
-    const response = await followsService.following(currentUser.value.id, 50, 1)
-    const ids = (response.data ?? []).map((user) => user.id)
-    viewerFollowingSet.value = new Set(ids)
-  } catch {
-    viewerFollowingSet.value = new Set()
+    const response = await usersService.search(query, 30)
+    const users = (response.data ?? []).map(normalizeUser).filter(Boolean)
+    people.value = users
+    totalPeople.value = Number(response.total ?? users.length)
+    hasMore.value = false
+    seedSetsFromPeople(users)
+  } catch (error) {
+    loadError.value = extractErrorMessage(error, 'Não foi possível pesquisar agora.')
+  } finally {
+    isLoading.value = false
+    isSearching.value = false
   }
 }
 
@@ -102,6 +105,7 @@ async function loadPeople({ reset = true } = {}) {
     totalPeople.value = Number(response.total ?? people.value.length)
     currentPage.value = Number(response.current_page ?? page)
     hasMore.value = Boolean(response.next_page_url)
+    seedSetsFromPeople(users)
   } catch (error) {
     loadError.value = extractErrorMessage(error, 'Não foi possível carregar sugestões agora.')
   } finally {
@@ -114,31 +118,39 @@ async function handleToggleFollow(account) {
     return
   }
 
-  pendingTargets.value.add(account.id)
+  pendingTargets.value = new Set([...pendingTargets.value, account.id])
 
   try {
     if (isFollowing(account)) {
       await followsService.unfollow(account.id)
-      viewerFollowingSet.value.delete(account.id)
+      viewerFollowingSet.value = new Set([...viewerFollowingSet.value].filter((id) => id !== account.id))
       feedbackMessage.value = `Você deixou de seguir @${account.username}.`
+    } else if (isFollowPending(account)) {
+      await followsService.unfollow(account.id)
+      pendingFollowIds.value = new Set([...pendingFollowIds.value].filter((id) => id !== account.id))
+      feedbackMessage.value = `Solicitação para @${account.username} cancelada.`
     } else {
-      await followsService.follow(account.id)
-      viewerFollowingSet.value.add(account.id)
-      feedbackMessage.value = `Agora você segue @${account.username}.`
+      const result = await followsService.follow(account.id)
+      if (result.status === 'pending') {
+        pendingFollowIds.value = new Set([...pendingFollowIds.value, account.id])
+        feedbackMessage.value = `Solicitação enviada para @${account.username}.`
+      } else {
+        viewerFollowingSet.value = new Set([...viewerFollowingSet.value, account.id])
+        feedbackMessage.value = `Agora você segue @${account.username}.`
+      }
     }
-    viewerFollowingSet.value = new Set(viewerFollowingSet.value)
   } catch (error) {
     feedbackMessage.value = extractErrorMessage(
       error,
       'Não foi possível atualizar esse perfil agora.',
     )
   } finally {
-    pendingTargets.value.delete(account.id)
+    pendingTargets.value = new Set([...pendingTargets.value].filter((id) => id !== account.id))
   }
 }
 
-onMounted(async () => {
-  await Promise.all([loadViewerFollowing(), loadPeople({ reset: true })])
+onMounted(() => {
+  loadPeople({ reset: true })
 })
 </script>
 
@@ -220,12 +232,12 @@ onMounted(async () => {
 
         <button
           class="btn"
-          :class="isFollowing(account) ? 'btn-outline-secondary' : 'btn-primary'"
+          :class="(isFollowing(account) || isFollowPending(account)) ? 'btn-outline-secondary' : 'btn-primary'"
           type="button"
           :disabled="pendingTargets.has(account.id)"
           @click="handleToggleFollow(account)"
         >
-          {{ isFollowing(account) ? 'Seguindo' : 'Seguir' }}
+          {{ isFollowing(account) ? 'Seguindo' : isFollowPending(account) ? 'Solicitado' : 'Seguir' }}
         </button>
       </article>
     </section>

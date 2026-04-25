@@ -11,6 +11,7 @@ use App\Services\PostService;
 use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ProfileController extends Controller
 {
@@ -68,5 +69,34 @@ class ProfileController extends Controller
         $posts = $this->posts->byUser($user, $this->perPage($request, 15), $request->user());
 
         return response()->json(PostResource::collection($posts)->response()->getData(true));
+    }
+
+    public function destroyAccount(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+        $this->users->deleteAccount($user);
+
+        return response()->json(['message' => 'Conta excluída.']);
+    }
+
+    public function privacy(Request $request): JsonResponse
+    {
+        $user      = $request->user();
+        $wasPrivate = (bool) $user->is_private;
+
+        $user->update(['is_private' => !$wasPrivate]);
+
+        // Auto-accept all pending follow requests when going public
+        if ($wasPrivate) {
+            DB::table('follows')
+                ->where('following_id', $user->id)
+                ->where('status', 'pending')
+                ->update(['status' => 'accepted']);
+        }
+
+        $user->loadCount(['posts', 'followers', 'following']);
+
+        return response()->json(new UserResource($user));
     }
 }

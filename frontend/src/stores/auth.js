@@ -92,6 +92,12 @@ export const useAuthStore = defineStore('auth', {
       return this.user
     },
 
+    async togglePrivacy() {
+      const user = await usersService.togglePrivacy()
+      this.user = normalizeUser(user)
+      return this.user
+    },
+
     async logout() {
       try {
         await authService.logout()

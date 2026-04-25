@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import * as notificationsService from '@/services/notifications.service'
+import * as followsService from '@/services/follows.service'
 
 function normalizeNotification(raw) {
   if (!raw) return null
@@ -57,6 +58,20 @@ export const useNotificationsStore = defineStore('notifications', {
         ...n,
         readAt: n.readAt ?? new Date().toISOString(),
       }))
+    },
+
+    async acceptFollowRequest(notification) {
+      await followsService.acceptRequest(notification.data.actor_id)
+      this.notifications = this.notifications.filter(
+        (n) => !(n.type === 'follow_request' && n.data.actor_id === notification.data.actor_id),
+      )
+    },
+
+    async declineFollowRequest(notification) {
+      await followsService.declineRequest(notification.data.actor_id)
+      this.notifications = this.notifications.filter(
+        (n) => !(n.type === 'follow_request' && n.data.actor_id === notification.data.actor_id),
+      )
     },
   },
 })

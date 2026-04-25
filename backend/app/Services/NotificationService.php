@@ -15,11 +15,23 @@ class NotificationService
             return;
         }
 
+        if ($type === 'follow_request' && isset($data['actor_id'])) {
+            $this->deleteFollowRequestFrom($recipient, $data['actor_id']);
+        }
+
         Notification::create([
             'user_id' => $recipient->id,
             'type'    => $type,
             'data'    => $data,
         ]);
+    }
+
+    public function deleteFollowRequestFrom(User $recipient, int $actorId): void
+    {
+        Notification::where('user_id', $recipient->id)
+            ->where('type', 'follow_request')
+            ->where('data->actor_id', $actorId)
+            ->delete();
     }
 
     public function list(User $user, int $perPage = 20): LengthAwarePaginator

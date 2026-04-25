@@ -37,5 +37,8 @@ export function normalizeUser(user) {
     avatarUrl: user.avatar_url ?? user.avatarUrl ?? '',
     colors: getProfileColors(seed),
     createdAt: user.created_at ?? user.createdAt ?? null,
+    isPrivate: Boolean(user.is_private ?? user.isPrivate ?? false),
+    isFollowing: Boolean(user.is_following ?? user.isFollowing ?? false),
+    isFollowPending: Boolean(user.is_follow_pending ?? user.isFollowPending ?? false),
   }
 }

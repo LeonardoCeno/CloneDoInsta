@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -19,6 +20,7 @@ class User extends Authenticatable
         'password',
         'bio',
         'avatar_path',
+        'is_private',
     ];
 
     protected $hidden = [
@@ -29,7 +31,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'   => 'hashed',
+            'is_private' => 'boolean',
         ];
     }
 
@@ -71,18 +74,36 @@ class User extends Authenticatable
     public function following()
     {
         return $this->belongsToMany(User::class, 'follows', 'follower_id', 'following_id')
+                    ->wherePivot('status', 'accepted')
                     ->withPivot('created_at');
     }
 
     public function followers()
     {
         return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id')
+                    ->wherePivot('status', 'accepted')
+                    ->withPivot('created_at');
+    }
+
+    public function pendingFollowers()
+    {
+        return $this->belongsToMany(User::class, 'follows', 'following_id', 'follower_id')
+                    ->wherePivot('status', 'pending')
                     ->withPivot('created_at');
     }
 
     public function isFollowing(User $user): bool
     {
         return $this->following()->where('following_id', $user->id)->exists();
+    }
+
+    public function isFollowPending(User $user): bool
+    {
+        return DB::table('follows')
+            ->where('follower_id', $this->id)
+            ->where('following_id', $user->id)
+            ->where('status', 'pending')
+            ->exists();
     }
 
     public function getAvatarUrlAttribute(): ?string
@@ -101,6 +122,13 @@ class User extends Authenticatable
     {
         if ($viewer) {
             $query->withExists(['followers as is_followed_by_viewer' => fn ($q) => $q->where('follower_id', $viewer->id)]);
+        }
+    }
+
+    public function scopeWithFollowPendingByViewer(Builder $query, ?User $viewer): void
+    {
+        if ($viewer) {
+            $query->withExists(['pendingFollowers as is_follow_pending_by_viewer' => fn ($q) => $q->where('follower_id', $viewer->id)]);
         }
     }
 }

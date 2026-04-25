@@ -28,3 +28,18 @@ export async function isFollowing(userId) {
   const { data } = await api.get(`/users/${userId}/is-following`)
   return data
 }
+
+export async function removeFollower(userId) {
+  const { data } = await api.delete(`/users/${userId}/followers`)
+  return data
+}
+
+export async function acceptRequest(userId) {
+  const { data } = await api.post(`/users/${userId}/follow/accept`)
+  return data
+}
+
+export async function declineRequest(userId) {
+  const { data } = await api.post(`/users/${userId}/follow/decline`)
+  return data
+}

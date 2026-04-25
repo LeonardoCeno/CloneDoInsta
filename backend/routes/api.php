@@ -49,6 +49,8 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/me',                   [ProfileController::class, 'showMe']);
     Route::put('users/me',                   [ProfileController::class, 'update']);
     Route::post('users/me/avatar',           [ProfileController::class, 'avatar']);
+    Route::put('users/me/privacy',           [ProfileController::class, 'privacy']);
+    Route::delete('users/me',                [ProfileController::class, 'destroyAccount']);
     Route::get('users/me/saved',             [SaveController::class, 'mySaved']);
 
     // Profile by username (lookup)
@@ -60,11 +62,14 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/{user}/reposts', [RepostController::class, 'userReposts']);
 
     // Follow / social
-    Route::post('users/{user}/follow',   [FollowController::class, 'follow']);
-    Route::delete('users/{user}/follow', [FollowController::class, 'unfollow']);
-    Route::get('users/{user}/followers',    [FollowController::class, 'followers']);
-    Route::get('users/{user}/following',    [FollowController::class, 'following']);
-    Route::get('users/{user}/is-following', [FollowController::class, 'isFollowing']);
+    Route::post('users/{user}/follow',          [FollowController::class, 'follow']);
+    Route::delete('users/{user}/follow',        [FollowController::class, 'unfollow']);
+    Route::delete('users/{user}/followers',     [FollowController::class, 'removeFollower']);
+    Route::post('users/{user}/follow/accept',   [FollowController::class, 'acceptRequest']);
+    Route::post('users/{user}/follow/decline',  [FollowController::class, 'declineRequest']);
+    Route::get('users/{user}/followers',        [FollowController::class, 'followers']);
+    Route::get('users/{user}/following',        [FollowController::class, 'following']);
+    Route::get('users/{user}/is-following',     [FollowController::class, 'isFollowing']);
 
     // Posts
     Route::get('posts/explore',       [ExploreController::class, 'index']);

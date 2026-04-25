@@ -46,3 +46,13 @@ export async function getRepostsByUser(userId, perPage = 15, page = 1) {
   })
   return data
 }
+
+export async function togglePrivacy() {
+  const { data } = await api.put('/users/me/privacy')
+  return data
+}
+
+export async function deleteAccount() {
+  const { data } = await api.delete('/users/me')
+  return data
+}

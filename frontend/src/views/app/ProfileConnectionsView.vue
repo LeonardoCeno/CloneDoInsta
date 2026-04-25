@@ -21,7 +21,9 @@ const totalPeople = ref(0)
 const currentPage = ref(1)
 const hasMore = ref(false)
 const viewerFollowingSet = ref(new Set())
+const pendingFollowIds = ref(new Set())
 const pendingTargets = ref(new Set())
+const removingSet = ref(new Set())
 
 const selectedUsername = computed(() =>
   typeof route.query.user === 'string' ? route.query.user.trim().toLowerCase() : '',
@@ -62,6 +64,10 @@ function isViewer(account) {
 
 function isFollowing(account) {
   return viewerFollowingSet.value.has(account.id)
+}
+
+function isFollowPending(account) {
+  return pendingFollowIds.value.has(account.id)
 }
 
 function getProfileLink(username) {
@@ -137,26 +143,51 @@ async function handleToggleFollow(account) {
     return
   }
 
-  pendingTargets.value.add(account.id)
+  pendingTargets.value = new Set([...pendingTargets.value, account.id])
 
   try {
     if (isFollowing(account)) {
       await followsService.unfollow(account.id)
-      viewerFollowingSet.value.delete(account.id)
+      viewerFollowingSet.value = new Set([...viewerFollowingSet.value].filter((id) => id !== account.id))
       feedbackMessage.value = `Você deixou de seguir @${account.username}.`
+    } else if (isFollowPending(account)) {
+      await followsService.unfollow(account.id)
+      pendingFollowIds.value = new Set([...pendingFollowIds.value].filter((id) => id !== account.id))
+      feedbackMessage.value = `Solicitação para @${account.username} cancelada.`
     } else {
-      await followsService.follow(account.id)
-      viewerFollowingSet.value.add(account.id)
-      feedbackMessage.value = `Agora você segue @${account.username}.`
+      const result = await followsService.follow(account.id)
+      if (result.status === 'pending') {
+        pendingFollowIds.value = new Set([...pendingFollowIds.value, account.id])
+        feedbackMessage.value = `Solicitação enviada para @${account.username}.`
+      } else {
+        viewerFollowingSet.value = new Set([...viewerFollowingSet.value, account.id])
+        feedbackMessage.value = `Agora você segue @${account.username}.`
+      }
     }
-    viewerFollowingSet.value = new Set(viewerFollowingSet.value)
   } catch (error) {
     feedbackMessage.value = extractErrorMessage(
       error,
       'Não foi possível atualizar esse perfil agora.',
     )
   } finally {
-    pendingTargets.value.delete(account.id)
+    pendingTargets.value = new Set([...pendingTargets.value].filter((id) => id !== account.id))
+  }
+}
+
+async function handleRemoveFollower(account) {
+  if (removingSet.value.has(account.id)) return
+  removingSet.value.add(account.id)
+
+  try {
+    await followsService.removeFollower(account.id)
+    people.value = people.value.filter((p) => p.id !== account.id)
+    totalPeople.value = Math.max(0, totalPeople.value - 1)
+    feedbackMessage.value = `@${account.username} foi removido dos seus seguidores.`
+  } catch (error) {
+    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível remover o seguidor.')
+  } finally {
+    removingSet.value.delete(account.id)
+    removingSet.value = new Set(removingSet.value)
   }
 }
 
@@ -212,17 +243,29 @@ watch(listType, () => {
           </div>
         </RouterLink>
 
-        <button
-          v-if="!isViewer(account)"
-          class="btn"
-          :class="isFollowing(account) ? 'btn-outline-secondary' : 'btn-primary'"
-          type="button"
-          :disabled="pendingTargets.has(account.id)"
-          @click="handleToggleFollow(account)"
-        >
-          {{ isFollowing(account) ? 'Seguindo' : 'Seguir' }}
-        </button>
-        <span v-else class="profile-list__owner-badge">Você</span>
+        <div class="profile-list__actions">
+          <button
+            v-if="isOwnProfile && listType === 'seguidores'"
+            class="btn btn-outline-secondary profile-list__remove-btn"
+            type="button"
+            :disabled="removingSet.has(account.id)"
+            @click="handleRemoveFollower(account)"
+          >
+            {{ removingSet.has(account.id) ? '...' : 'Remover' }}
+          </button>
+
+          <button
+            v-if="!isViewer(account)"
+            class="btn"
+            :class="(isFollowing(account) || isFollowPending(account)) ? 'btn-outline-secondary' : 'btn-primary'"
+            type="button"
+            :disabled="pendingTargets.has(account.id)"
+            @click="handleToggleFollow(account)"
+          >
+            {{ isFollowing(account) ? 'Seguindo' : isFollowPending(account) ? 'Solicitado' : 'Seguir' }}
+          </button>
+          <span v-else class="profile-list__owner-badge">Você</span>
+        </div>
       </article>
 
       <div v-if="hasMore" class="profile-list__more">
@@ -359,6 +402,24 @@ watch(listType, () => {
   border-radius: 999px;
   font-weight: 800;
   background: var(--app-surface-soft);
+}
+
+.profile-list__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.profile-list__remove-btn {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.85rem;
+  color: var(--app-muted);
+}
+
+.profile-list__remove-btn:hover:not(:disabled) {
+  color: #ff5c5c;
+  border-color: #ff5c5c;
 }
 
 .profile-list__more {

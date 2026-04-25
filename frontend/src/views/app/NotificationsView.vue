@@ -31,6 +31,7 @@ function describeNotification(n) {
   if (n.type === 'like') return `${actor} curtiu seu post.`
   if (n.type === 'comment') return `${actor} comentou no seu post.`
   if (n.type === 'follow') return `${actor} passou a te seguir.`
+  if (n.type === 'follow_request') return `${actor} quer te seguir.`
   return `${actor} interagiu com você.`
 }
 
@@ -38,7 +39,7 @@ function notificationLink(n) {
   if ((n.type === 'like' || n.type === 'comment') && n.data.post_id) {
     return { name: 'post-detalhes', params: { postId: n.data.post_id } }
   }
-  if (n.type === 'follow' && n.data.actor_username) {
+  if ((n.type === 'follow' || n.type === 'follow_request') && n.data.actor_username) {
     return { name: 'perfil', query: { user: n.data.actor_username } }
   }
   return null
@@ -48,6 +49,7 @@ function notificationIcon(type) {
   if (type === 'like') return '❤️'
   if (type === 'comment') return '💬'
   if (type === 'follow') return '👤'
+  if (type === 'follow_request') return '🔒'
   return '🔔'
 }
 
@@ -95,6 +97,10 @@ onMounted(async () => {
             <span class="notif__text">{{ describeNotification(n) }}</span>
             <time class="notif__time" :datetime="n.createdAt">{{ timeAgo(n.createdAt) }}</time>
           </component>
+          <div v-if="n.type === 'follow_request'" class="notif__actions">
+            <button class="notif__action-btn notif__action-btn--accept" type="button" @click.prevent="store.acceptFollowRequest(n)">Confirmar</button>
+            <button class="notif__action-btn notif__action-btn--decline" type="button" @click.prevent="store.declineFollowRequest(n)">Recusar</button>
+          </div>
         </li>
       </ul>
     </section>
@@ -113,6 +119,10 @@ onMounted(async () => {
             <span class="notif__text">{{ describeNotification(n) }}</span>
             <time class="notif__time" :datetime="n.createdAt">{{ timeAgo(n.createdAt) }}</time>
           </component>
+          <div v-if="n.type === 'follow_request'" class="notif__actions">
+            <button class="notif__action-btn notif__action-btn--accept" type="button" @click.prevent="store.acceptFollowRequest(n)">Confirmar</button>
+            <button class="notif__action-btn notif__action-btn--decline" type="button" @click.prevent="store.declineFollowRequest(n)">Recusar</button>
+          </div>
         </li>
       </ul>
     </section>
@@ -315,5 +325,35 @@ a.notif__row:hover {
 .notif__more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.notif__actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0 1rem 0.85rem;
+}
+
+.notif__action-btn {
+  padding: 0.4rem 1rem;
+  border: none;
+  border-radius: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.notif__action-btn:hover {
+  opacity: 0.85;
+}
+
+.notif__action-btn--accept {
+  background: var(--app-link, #0095f6);
+  color: #fff;
+}
+
+.notif__action-btn--decline {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
 }
 </style>

@@ -4,12 +4,20 @@ import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
 import { useAuth } from '@/composables/useAuth'
+import { useAuthStore } from '@/stores/auth'
 import * as followsService from '@/services/follows.service'
 import * as usersService from '@/services/users.service'
+import { deleteAccount } from '@/services/users.service'
 import { normalizeUser } from '@/stores/profileUtils'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const notificationsStore = useNotificationsStore()
+const authStore = useAuthStore()
+
+const showMoreMenu = ref(false)
+const privacyPending = ref(false)
+const showDeleteConfirm = ref(false)
+const deletePending = ref(false)
 
 let pollInterval = null
 
@@ -113,8 +121,37 @@ async function handleFollowSuggestion(account) {
 }
 
 async function handleLogout() {
+  showMoreMenu.value = false
+  showDeleteConfirm.value = false
   await logout()
   router.replace({ name: 'login' })
+}
+
+async function handleDeleteAccount() {
+  if (deletePending.value) return
+  deletePending.value = true
+  try {
+    await deleteAccount()
+    await logout()
+    router.replace({ name: 'login' })
+  } finally {
+    deletePending.value = false
+  }
+}
+
+function closeMoreMenu() {
+  showMoreMenu.value = false
+  showDeleteConfirm.value = false
+}
+
+async function handleTogglePrivacy() {
+  if (privacyPending.value) return
+  privacyPending.value = true
+  try {
+    await authStore.togglePrivacy()
+  } finally {
+    privacyPending.value = false
+  }
 }
 
 watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: true })
@@ -169,9 +206,9 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
             <span class="ig-nav__label">Perfil</span>
           </RouterLink>
 
-          <button class="ig-sidebar__more" type="button" title="Encerrar sessão" @click="handleLogout">
+          <button class="ig-sidebar__more" type="button" title="Mais opções" @click="showMoreMenu = true">
             <AppIcon name="menu" />
-            <span class="ig-nav__label">Sair</span>
+            <span class="ig-nav__label">Mais</span>
           </button>
         </div>
       </aside>
@@ -188,6 +225,59 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
           <component :is="Component" />
         </main>
       </div>
+
+      <!-- "Mais" popup menu -->
+      <Teleport to="body">
+        <Transition name="mais-fade">
+          <div v-if="showMoreMenu" class="mais-backdrop" @click.self="closeMoreMenu">
+            <div class="mais-panel" role="dialog" aria-label="Mais opções">
+              <template v-if="!showDeleteConfirm">
+                <button
+                  class="mais-item"
+                  type="button"
+                  :disabled="privacyPending"
+                  @click="handleTogglePrivacy"
+                >
+                  <AppIcon :name="currentUser?.isPrivate ? 'unlock' : 'lock'" />
+                  <span>{{ currentUser?.isPrivate ? 'Tornar perfil público' : 'Tornar perfil privado' }}</span>
+                </button>
+
+                <hr class="mais-divider" />
+
+                <button class="mais-item mais-item--danger" type="button" @click="handleLogout">
+                  <AppIcon name="logout" />
+                  <span>Encerrar sessão</span>
+                </button>
+
+                <hr class="mais-divider" />
+
+                <button class="mais-item mais-item--danger" type="button" @click="showDeleteConfirm = true">
+                  <AppIcon name="trash" />
+                  <span>Excluir conta</span>
+                </button>
+              </template>
+
+              <template v-else>
+                <p class="mais-confirm-text">
+                  Tem certeza? Todos os seus posts, seguidores e dados serão excluídos permanentemente. Essa ação não pode ser desfeita.
+                </p>
+                <button
+                  class="mais-item mais-item--danger"
+                  type="button"
+                  :disabled="deletePending"
+                  @click="handleDeleteAccount"
+                >
+                  <AppIcon name="trash" />
+                  <span>{{ deletePending ? 'Excluindo...' : 'Sim, excluir minha conta' }}</span>
+                </button>
+                <button class="mais-item" type="button" @click="showDeleteConfirm = false">
+                  <span>Cancelar</span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
 
       <aside v-if="isFeedRoute" class="ig-rail">
         <section class="ig-rail__account">
@@ -257,3 +347,82 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
     </div>
   </RouterView>
 </template>
+
+<style scoped>
+.mais-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.mais-panel {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto 1.5rem;
+  padding: 0.5rem 0;
+  border-radius: 1.25rem;
+  background: #1c1c1c;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.mais-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: 0;
+  color: #f5f5f5;
+  font-size: 0.97rem;
+  font-weight: 500;
+  text-align: left;
+  background: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.mais-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.mais-item--danger {
+  color: #ff5c5c;
+}
+
+.mais-divider {
+  margin: 0.25rem 0;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.mais-confirm-text {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--app-muted);
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mais-fade-enter-active,
+.mais-fade-leave-active {
+  transition: opacity 180ms ease;
+}
+
+.mais-fade-enter-from,
+.mais-fade-leave-to {
+  opacity: 0;
+}
+
+.mais-fade-enter-active .mais-panel,
+.mais-fade-leave-active .mais-panel {
+  transition: transform 180ms ease;
+}
+
+.mais-fade-enter-from .mais-panel,
+.mais-fade-leave-to .mais-panel {
+  transform: translateY(1.5rem);
+}
+</style>

@@ -34,6 +34,19 @@ class UserService
         return $user->fresh()->loadCount(['posts', 'followers', 'following']);
     }
 
+    public function deleteAccount(User $user): void
+    {
+        foreach ($user->posts as $post) {
+            Storage::disk('public')->delete($post->image_path);
+        }
+
+        if ($user->avatar_path) {
+            Storage::disk('public')->delete($user->avatar_path);
+        }
+
+        $user->delete();
+    }
+
     public function findByUsername(string $username): User
     {
         return User::where('username', $username)
@@ -49,17 +62,23 @@ class UserService
             ->orWhere('name', 'like', $safe)
             ->withUserCounts()
             ->withFollowedByViewer($viewer)
+            ->withFollowPendingByViewer($viewer)
             ->orderBy('username')
             ->paginate($perPage);
     }
 
     public function suggestions(User $viewer, int $perPage = 20): LengthAwarePaginator
     {
-        $followingIds = $viewer->following()->pluck('users.id')->push($viewer->id);
+        $acceptedIds = \Illuminate\Support\Facades\DB::table('follows')
+            ->where('follower_id', $viewer->id)
+            ->where('status', 'accepted')
+            ->pluck('following_id')
+            ->push($viewer->id);
 
-        return User::whereNotIn('id', $followingIds)
+        return User::whereNotIn('id', $acceptedIds)
             ->withUserCounts()
             ->withFollowedByViewer($viewer)
+            ->withFollowPendingByViewer($viewer)
             ->orderByDesc('followers_count')
             ->paginate($perPage);
     }

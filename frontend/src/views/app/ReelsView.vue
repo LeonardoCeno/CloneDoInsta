@@ -23,6 +23,7 @@ const likePending = ref(new Set())
 const savePending = ref(new Set())
 const followPending = ref(new Set())
 const followedIds = ref(new Set())
+const followPendingIds = ref(new Set())
 
 const activePost = computed(() => posts.value[activeIndex.value] ?? null)
 
@@ -132,26 +133,25 @@ async function toggleSave(post) {
 
 async function toggleFollow(author) {
   if (!author?.id || followPending.value.has(author.id)) return
-  const next = new Set(followPending.value)
-  next.add(author.id)
-  followPending.value = next
+  followPending.value = new Set([...followPending.value, author.id])
 
   try {
     if (followedIds.value.has(author.id)) {
       await followsService.unfollow(author.id)
-      const n = new Set(followedIds.value)
-      n.delete(author.id)
-      followedIds.value = n
+      followedIds.value = new Set([...followedIds.value].filter((id) => id !== author.id))
+    } else if (followPendingIds.value.has(author.id)) {
+      await followsService.unfollow(author.id)
+      followPendingIds.value = new Set([...followPendingIds.value].filter((id) => id !== author.id))
     } else {
-      await followsService.follow(author.id)
-      const n = new Set(followedIds.value)
-      n.add(author.id)
-      followedIds.value = n
+      const result = await followsService.follow(author.id)
+      if (result.status === 'pending') {
+        followPendingIds.value = new Set([...followPendingIds.value, author.id])
+      } else {
+        followedIds.value = new Set([...followedIds.value, author.id])
+      }
     }
   } finally {
-    const n = new Set(followPending.value)
-    n.delete(author.id)
-    followPending.value = n
+    followPending.value = new Set([...followPending.value].filter((id) => id !== author.id))
   }
 }
 
@@ -226,7 +226,7 @@ onUnmounted(() => {
             :disabled="followPending.has(post.author.id)"
             @click="toggleFollow(post.author)"
           >
-            {{ followedIds.has(post.author.id) ? 'Seguindo' : 'Seguir' }}
+            {{ followedIds.has(post.author.id) ? 'Seguindo' : followPendingIds.has(post.author.id) ? 'Solicitado' : 'Seguir' }}
           </button>
 
           <p v-if="post.caption" class="reel-item__caption">{{ post.caption }}</p>

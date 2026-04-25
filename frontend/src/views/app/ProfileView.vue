@@ -22,6 +22,7 @@ const followersCount = ref(0)
 const followingList = ref([])
 const followingCount = ref(0)
 const isFollowedByViewer = ref(false)
+const isFollowPending = ref(false)
 const isLoading = ref(false)
 const loadError = ref('')
 const feedbackMessage = ref('')
@@ -43,8 +44,14 @@ const isOwnProfile = computed(() => {
   return profile.value.id === currentUser.value.id
 })
 
-const followButtonLabel = computed(() =>
-  isFollowedByViewer.value ? 'Deixar de seguir' : 'Seguir perfil',
+const followButtonLabel = computed(() => {
+  if (isFollowedByViewer.value) return 'Seguindo'
+  if (isFollowPending.value) return 'Solicitado'
+  return 'Seguir'
+})
+
+const isPrivateAndHidden = computed(() =>
+  profile.value?.isPrivate && !isFollowedByViewer.value && !isOwnProfile.value,
 )
 
 const connectionsQuery = computed(() => {
@@ -105,6 +112,7 @@ async function loadProfile() {
   followingList.value = []
   followingCount.value = 0
   isFollowedByViewer.value = false
+  isFollowPending.value = false
   activeTab.value = 'posts'
   repostsList.value = []
   repostsLoaded.value = false
@@ -146,8 +154,10 @@ async function loadProfile() {
       try {
         const result = await followsService.isFollowing(targetUser.id)
         isFollowedByViewer.value = Boolean(result.is_following)
+        isFollowPending.value = Boolean(result.is_pending)
       } catch {
         isFollowedByViewer.value = false
+        isFollowPending.value = false
       }
     }
   } catch (error) {
@@ -165,16 +175,27 @@ async function handleToggleFollow() {
   followPending.value = true
 
   try {
-    if (isFollowedByViewer.value) {
+    if (isFollowedByViewer.value || isFollowPending.value) {
       await followsService.unfollow(profile.value.id)
+      const wasFollowing = isFollowedByViewer.value
       isFollowedByViewer.value = false
-      followersCount.value = Math.max(0, followersCount.value - 1)
-      feedbackMessage.value = `Você deixou de seguir @${profile.value.username}.`
+      isFollowPending.value = false
+      if (wasFollowing) {
+        followersCount.value = Math.max(0, followersCount.value - 1)
+        feedbackMessage.value = `Você deixou de seguir @${profile.value.username}.`
+      } else {
+        feedbackMessage.value = `Solicitação para @${profile.value.username} cancelada.`
+      }
     } else {
-      await followsService.follow(profile.value.id)
-      isFollowedByViewer.value = true
-      followersCount.value = followersCount.value + 1
-      feedbackMessage.value = `Agora você segue @${profile.value.username}.`
+      const result = await followsService.follow(profile.value.id)
+      if (result.status === 'pending') {
+        isFollowPending.value = true
+        feedbackMessage.value = `Solicitação enviada para @${profile.value.username}.`
+      } else {
+        isFollowedByViewer.value = true
+        followersCount.value = followersCount.value + 1
+        feedbackMessage.value = `Agora você segue @${profile.value.username}.`
+      }
     }
   } catch (error) {
     feedbackMessage.value = extractErrorMessage(
@@ -249,7 +270,12 @@ watch(
 
             <button
               v-else
-              class="btn btn-outline-secondary"
+              class="btn"
+              :class="{
+                'btn-outline-secondary': !isFollowedByViewer && !isFollowPending,
+                'btn-primary': !isFollowedByViewer && !isFollowPending,
+                'btn-secondary': isFollowedByViewer || isFollowPending,
+              }"
               type="button"
               :disabled="followPending"
               @click="handleToggleFollow"
@@ -340,7 +366,13 @@ watch(
       </RouterLink>
     </section>
 
-    <nav class="profile-tabs" aria-label="Seções do perfil">
+    <section v-if="isPrivateAndHidden" class="profile-private card border-0">
+      <AppIcon name="lock" />
+      <h3>Esta conta é privada</h3>
+      <p>Siga {{ profile.username }} para ver as publicações.</p>
+    </section>
+
+    <nav v-if="!isPrivateAndHidden" class="profile-tabs" aria-label="Seções do perfil">
       <button
         class="profile-tabs__item"
         :class="{ 'is-active': activeTab === 'posts' }"
@@ -373,7 +405,7 @@ watch(
     </nav>
 
     <!-- Posts grid -->
-    <template v-if="activeTab === 'posts'">
+    <template v-if="!isPrivateAndHidden && activeTab === 'posts'">
       <section v-if="postsList.length > 0" class="profile-grid">
         <RouterLink
           v-for="post in postsList"
@@ -407,7 +439,7 @@ watch(
     </template>
 
     <!-- Reposts grid -->
-    <template v-if="activeTab === 'reposts'">
+    <template v-if="!isPrivateAndHidden && activeTab === 'reposts'">
       <div v-if="repostsLoading" class="profile-grid">
         <div v-for="n in 6" :key="n" class="profile-grid__skeleton" />
       </div>
@@ -675,6 +707,36 @@ watch(
 
 .profile-empty p {
   margin: 0;
+}
+
+.profile-private {
+  display: grid;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  border-radius: 1rem;
+  background: var(--app-surface);
+  text-align: center;
+  color: var(--app-muted);
+}
+
+.profile-private svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto;
+  opacity: 0.5;
+}
+
+.profile-private h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.profile-private p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .profile-grid__skeleton {

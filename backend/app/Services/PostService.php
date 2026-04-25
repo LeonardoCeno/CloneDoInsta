@@ -42,6 +42,10 @@ class PostService
 
     public function byUser(User $user, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
     {
+        if ($user->is_private && !$this->viewerCanSee($viewer, $user)) {
+            return new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage, 1);
+        }
+
         return Post::where('user_id', $user->id)
             ->with('user')
             ->withPostCounts()
@@ -54,13 +58,34 @@ class PostService
 
     public function explore(int $perPage = 18, ?User $viewer = null): LengthAwarePaginator
     {
-        return Post::with('user')
+        $query = Post::with('user')
             ->withPostCounts()
             ->withLikedByViewer($viewer)
             ->withSavedByViewer($viewer)
-            ->withRepostedByViewer($viewer)
-            ->latest()
-            ->paginate($perPage);
+            ->withRepostedByViewer($viewer);
+
+        if ($viewer) {
+            $query->whereHas('user', fn ($q) =>
+                $q->where('is_private', false)
+                  ->orWhereHas('followers', fn ($f) => $f->where('follower_id', $viewer->id))
+            );
+        } else {
+            $query->whereHas('user', fn ($q) => $q->where('is_private', false));
+        }
+
+        return $query->latest()->paginate($perPage);
+    }
+
+    private function viewerCanSee(?User $viewer, User $user): bool
+    {
+        if (!$viewer) return false;
+        if ($viewer->id === $user->id) return true;
+
+        return \Illuminate\Support\Facades\DB::table('follows')
+            ->where('follower_id', $viewer->id)
+            ->where('following_id', $user->id)
+            ->where('status', 'accepted')
+            ->exists();
     }
 
     public function find(int $id, ?User $viewer = null): Post
