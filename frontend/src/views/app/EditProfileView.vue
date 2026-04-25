@@ -9,6 +9,9 @@ import {
   useAuth,
 } from '@/composables/useAuth'
 import { extractErrorMessage } from '@/services/api'
+import { useToastStore } from '@/stores/toast'
+
+const toastStore = useToastStore()
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 const MAX_AVATAR_UPLOAD_BYTES = 2 * 1024 * 1024
@@ -172,8 +175,10 @@ async function handleSubmit() {
     }
 
     successMessage.value = 'Perfil atualizado com sucesso.'
+    toastStore.show('Perfil atualizado com sucesso.', 'success')
   } catch (error) {
     errorMessage.value = extractErrorMessage(error, 'Não foi possível salvar o perfil agora.')
+    toastStore.show(errorMessage.value, 'error')
   } finally {
     isSubmitting.value = false
   }

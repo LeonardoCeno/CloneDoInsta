@@ -3,6 +3,7 @@ import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import ToastContainer from '@/components/shared/ToastContainer.vue'
 import { useAuth } from '@/composables/useAuth'
 import { useAuthStore } from '@/stores/auth'
 import * as followsService from '@/services/follows.service'
@@ -10,9 +11,13 @@ import * as usersService from '@/services/users.service'
 import { deleteAccount } from '@/services/users.service'
 import { normalizeUser } from '@/stores/profileUtils'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useFeedStore } from '@/stores/feed'
+import { useToastStore } from '@/stores/toast'
 
 const notificationsStore = useNotificationsStore()
 const authStore = useAuthStore()
+const feedStore = useFeedStore()
+const toastStore = useToastStore()
 
 const showMoreMenu = ref(false)
 const privacyPending = ref(false)
@@ -115,6 +120,8 @@ async function handleFollowSuggestion(account) {
   try {
     await followsService.follow(account.id)
     railSuggestions.value = railSuggestions.value.filter((item) => item.id !== account.id)
+    toastStore.show(`Agora você segue @${account.username}.`, 'success')
+    feedStore.fetchFeed({ reset: true })
   } finally {
     updatePendingSet(account.id, false)
   }
@@ -346,6 +353,8 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
       </aside>
     </div>
   </RouterView>
+
+  <ToastContainer />
 </template>
 
 <style scoped>

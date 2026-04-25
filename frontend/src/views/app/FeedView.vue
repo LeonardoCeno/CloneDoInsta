@@ -6,8 +6,11 @@ import StoryViewer from '@/components/stories/StoryViewer.vue'
 import { useFeed } from '@/composables/useFeed'
 import { extractErrorMessage } from '@/services/api'
 import { useStoriesStore } from '@/stores/stories'
+import * as repostsService from '@/services/reposts.service'
+import { useToastStore } from '@/stores/toast'
 
 const storiesStore = useStoriesStore()
+const toastStore = useToastStore()
 
 const feedbackMessage = ref('')
 const loadError = ref('')
@@ -72,6 +75,32 @@ async function handleSubmitComment(payload) {
   }
 }
 
+async function handleToggleRepost(postId) {
+  const post = feedPosts.value.find((item) => item.id === postId)
+  if (!post) {
+    return
+  }
+
+  try {
+    if (post.repostedByMe) {
+      await repostsService.unrepost(post.id)
+      post.repostedByMe = false
+      post.repostsCount = Math.max(0, post.repostsCount - 1)
+      toastStore.show('Republicação removida.', 'info')
+    } else {
+      await repostsService.repost(post.id)
+      post.repostedByMe = true
+      post.repostsCount = post.repostsCount + 1
+      toastStore.show('Post republicado.', 'success')
+    }
+  } catch (error) {
+    toastStore.show(
+      extractErrorMessage(error, 'Não foi possível republicar o post.'),
+      'error',
+    )
+  }
+}
+
 async function handleLoadMore() {
   try {
     await loadMoreFeed()
@@ -101,6 +130,7 @@ async function handleLoadMore() {
         :post="post"
         @toggle-like="handleToggleLike"
         @toggle-save="handleToggleSave"
+        @toggle-repost="handleToggleRepost"
         @submit-comment="handleSubmitComment"
       />
     </section>
