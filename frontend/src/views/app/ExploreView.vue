@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import * as postsService from '@/services/posts.service'
 import { extractErrorMessage } from '@/services/api'
 import { normalizePost } from '@/stores/feed'
@@ -53,11 +54,12 @@ onMounted(() => loadPosts({ reset: true }))
         :to="{ name: 'post-detalhes', params: { postId: post.id } }"
         :aria-label="`Post de @${post.author.username}`"
       >
-        <img
+        <MediaDisplay
           :src="post.imageUrl"
           :alt="post.imageAlt"
+          :is-video="post.isVideo"
+          :thumbnail="true"
           class="explore__img"
-          loading="lazy"
         />
         <div class="explore__overlay" aria-hidden="true">
           <span class="explore__stat">

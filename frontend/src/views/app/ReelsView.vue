@@ -1,8 +1,9 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
 import * as savesService from '@/services/saves.service'
@@ -165,9 +166,21 @@ function formatCount(n) {
   return String(n)
 }
 
+function getVideoAt(idx) {
+  const items = containerRef.value?.querySelectorAll('.reel-item')
+  return items?.[idx]?.querySelector('video') ?? null
+}
+
+watch(activeIndex, (newIdx, oldIdx) => {
+  getVideoAt(oldIdx)?.pause()
+  getVideoAt(newIdx)?.play().catch(() => {})
+})
+
 onMounted(async () => {
   await loadPosts({ reset: true })
   window.addEventListener('keydown', onKeydown)
+  await nextTick()
+  getVideoAt(0)?.play().catch(() => {})
 })
 
 onUnmounted(() => {
@@ -195,11 +208,14 @@ onUnmounted(() => {
           class="reel-item__media-link"
           :aria-label="`Ver post de @${post.author.username}`"
         >
-          <img
+          <MediaDisplay
             :src="post.imageUrl"
             :alt="post.imageAlt"
+            :is-video="post.isVideo"
+            :muted="true"
+            :controls="true"
+            :loop="true"
             class="reel-item__img"
-            :loading="idx === 0 ? 'eager' : 'lazy'"
           />
         </RouterLink>
 

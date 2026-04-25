@@ -3,6 +3,7 @@ import { computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import { useAuth } from '@/composables/useAuth'
 
 const props = defineProps({
@@ -132,7 +133,16 @@ function handleCommentSubmit() {
     </header>
 
     <RouterLink :to="postLink" class="feed-post__media-link">
-      <img class="feed-post__media" :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+      <MediaDisplay
+        class="feed-post__media"
+        :src="post.imageUrl"
+        :alt="post.imageAlt"
+        :is-video="post.isVideo"
+        :autoplay="post.isVideo"
+        :muted="true"
+        :controls="true"
+        :loop="true"
+      />
     </RouterLink>
 
     <div class="feed-post__body">

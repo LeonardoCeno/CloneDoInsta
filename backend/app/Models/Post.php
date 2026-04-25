@@ -42,6 +42,11 @@ class Post extends Model
         return asset('storage/' . $this->image_path);
     }
 
+    public function getIsVideoAttribute(): bool
+    {
+        return str_ends_with(strtolower($this->image_path ?? ''), '.mp4');
+    }
+
     public function isLikedBy(User $user): bool
     {
         return $this->likes()->where('user_id', $user->id)->exists();

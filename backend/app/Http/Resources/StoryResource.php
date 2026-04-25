@@ -12,6 +12,7 @@ class StoryResource extends JsonResource
         return [
             'id'         => $this->id,
             'image_url'  => $this->image_url,
+            'is_video'   => (bool) $this->is_video,
             'created_at' => $this->created_at?->toISOString(),
             'expires_at' => $this->expires_at?->toISOString(),
             'seen_by_me' => (bool) ($this->seen_by_me ?? false),

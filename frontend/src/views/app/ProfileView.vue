@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import { useAuth } from '@/composables/useAuth'
 import { extractErrorMessage } from '@/services/api'
 import * as followsService from '@/services/follows.service'
@@ -413,7 +414,7 @@ watch(
           :to="{ name: 'post-detalhes', params: { postId: post.id } }"
           class="profile-grid__item"
         >
-          <img :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+          <MediaDisplay :src="post.imageUrl" :alt="post.imageAlt" :is-video="post.isVideo" :thumbnail="true" />
           <div class="profile-grid__overlay">
             <span>{{ post.likesCount }} curtidas</span>
             <span>{{ post.commentsCount }} comentários</span>
@@ -451,7 +452,7 @@ watch(
           :to="{ name: 'post-detalhes', params: { postId: post.id } }"
           class="profile-grid__item"
         >
-          <img :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+          <MediaDisplay :src="post.imageUrl" :alt="post.imageAlt" :is-video="post.isVideo" :thumbnail="true" />
           <div class="profile-grid__overlay">
             <span>@{{ post.author.username }}</span>
             <span>{{ post.likesCount }} curtidas</span>

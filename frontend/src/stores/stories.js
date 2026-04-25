@@ -7,6 +7,7 @@ function normalizeStory(raw) {
   return {
     id: raw.id,
     imageUrl: raw.image_url ?? raw.imageUrl ?? '',
+    isVideo: Boolean(raw.is_video ?? raw.isVideo ?? false),
     createdAt: raw.created_at ?? raw.createdAt ?? null,
     expiresAt: raw.expires_at ?? raw.expiresAt ?? null,
     seenByMe: Boolean(raw.seen_by_me ?? raw.seenByMe ?? false),

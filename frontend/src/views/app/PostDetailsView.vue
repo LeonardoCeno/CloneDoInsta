@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import { useAuth } from '@/composables/useAuth'
 import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
@@ -308,7 +309,16 @@ watch(
 
     <article class="post-details__card card border-0">
       <div class="post-details__media-panel">
-        <img class="post-details__image" :src="post.imageUrl" :alt="post.imageAlt" />
+        <MediaDisplay
+          class="post-details__image"
+          :src="post.imageUrl"
+          :alt="post.imageAlt"
+          :is-video="post.isVideo"
+          :autoplay="post.isVideo"
+          :muted="true"
+          :controls="true"
+          :loop="true"
+        />
       </div>
 
       <div class="post-details__content">

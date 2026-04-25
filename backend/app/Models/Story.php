@@ -24,6 +24,11 @@ class Story extends Model
         return asset('storage/' . $this->image_path);
     }
 
+    public function getIsVideoAttribute(): bool
+    {
+        return str_ends_with(strtolower($this->image_path ?? ''), '.mp4');
+    }
+
     public function getExpiresAtAttribute(): ?\Illuminate\Support\Carbon
     {
         return $this->created_at?->addHours(24);

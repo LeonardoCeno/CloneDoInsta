@@ -30,6 +30,7 @@ export function normalizePost(rawPost) {
     author,
     caption,
     imageUrl: rawPost.image_url ?? rawPost.imageUrl ?? '',
+    isVideo: Boolean(rawPost.is_video ?? rawPost.isVideo ?? false),
     imageAlt: caption
       ? `Publicação de @${author.username}: ${caption.slice(0, 96)}`
       : `Publicação de @${author.username}.`,

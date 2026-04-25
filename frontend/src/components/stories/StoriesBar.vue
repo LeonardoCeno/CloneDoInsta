@@ -64,7 +64,7 @@ function getRealGroupIdx(otherGroupUser) {
     <input
       ref="fileInput"
       type="file"
-      accept="image/jpeg,image/jpg,image/png,image/webp"
+      accept="image/jpeg,image/jpg,image/png,image/webp,image/gif,video/mp4"
       class="stories-bar__file-input"
       @change="handleFileChange"
     />

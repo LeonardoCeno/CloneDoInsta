@@ -16,6 +16,7 @@ class PostResource extends JsonResource
         return [
             'id'             => $this->id,
             'image_url'      => $this->image_url,
+            'is_video'       => (bool) $this->is_video,
             'caption'        => $this->caption,
             'created_at'     => $this->created_at?->toISOString(),
             'updated_at'     => $this->updated_at?->toISOString(),

@@ -4,6 +4,7 @@ import { useStoriesStore } from '@/stores/stories'
 import { useAuth } from '@/composables/useAuth'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
 import AppIcon from '@/components/layout/AppIcon.vue'
+import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 
 const STORY_DURATION = 5000
 
@@ -152,11 +153,12 @@ onUnmounted(() => {
           @keydown.enter="storiesStore.goTo(storiesStore.viewerGroupIdx - 1, 0)"
         >
           <div class="story-viewer__side-card">
-            <img
+            <MediaDisplay
               v-if="prevGroup.stories[0]"
               :src="prevGroup.stories[0].imageUrl"
+              :is-video="prevGroup.stories[0].isVideo"
+              :thumbnail="true"
               class="story-viewer__side-img"
-              alt=""
             />
             <div class="story-viewer__side-user">
               <ProfileAvatar
@@ -226,12 +228,16 @@ onUnmounted(() => {
 
           <!-- Story image with tap zones -->
           <div class="story-viewer__media" @click="handleNavClick">
-            <img
+            <MediaDisplay
               v-if="currentStory"
               :key="currentStory.id"
               :src="currentStory.imageUrl"
+              :is-video="currentStory.isVideo"
+              :autoplay="true"
+              :loop="false"
+              :muted="false"
+              :controls="false"
               class="story-viewer__img"
-              alt="Story"
             />
           </div>
         </div>
