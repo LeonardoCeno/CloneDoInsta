@@ -48,6 +48,11 @@ class User extends Authenticatable
         return $this->hasMany(Save::class);
     }
 
+    public function reposts()
+    {
+        return $this->hasMany(Repost::class)->latest('created_at');
+    }
+
     public function stories()
     {
         return $this->hasMany(Story::class)->latest();

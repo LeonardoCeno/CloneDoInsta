@@ -39,3 +39,10 @@ export async function getPostsByUser(userId, perPage = 15, page = 1) {
   })
   return data
 }
+
+export async function getRepostsByUser(userId, perPage = 15, page = 1) {
+  const { data } = await api.get(`/users/${userId}/reposts`, {
+    params: { per_page: perPage, page },
+  })
+  return data
+}

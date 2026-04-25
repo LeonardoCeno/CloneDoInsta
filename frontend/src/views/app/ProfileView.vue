@@ -7,6 +7,7 @@ import { useAuth } from '@/composables/useAuth'
 import { extractErrorMessage } from '@/services/api'
 import * as followsService from '@/services/follows.service'
 import * as usersService from '@/services/users.service'
+import * as repostsService from '@/services/reposts.service'
 import { normalizePost } from '@/stores/feed'
 import { normalizeUser } from '@/stores/profileUtils'
 
@@ -25,6 +26,11 @@ const isLoading = ref(false)
 const loadError = ref('')
 const feedbackMessage = ref('')
 const followPending = ref(false)
+
+const activeTab = ref('posts')
+const repostsList = ref([])
+const repostsLoaded = ref(false)
+const repostsLoading = ref(false)
 
 const selectedUsername = computed(() =>
   typeof route.query.user === 'string' ? route.query.user.trim().toLowerCase() : '',
@@ -64,6 +70,28 @@ const secondaryActionLabel = computed(() =>
   isOwnProfile.value ? 'Ver conexões' : 'Ver seguidores',
 )
 
+async function loadReposts() {
+  if (!profile.value?.id || repostsLoading.value) return
+  repostsLoading.value = true
+  try {
+    const resp = await usersService.getRepostsByUser(profile.value.id, 15, 1)
+    repostsList.value = (resp.data ?? []).map(normalizePost).filter(Boolean)
+    repostsLoaded.value = true
+  } catch {
+    repostsList.value = []
+    repostsLoaded.value = true
+  } finally {
+    repostsLoading.value = false
+  }
+}
+
+async function switchTab(tab) {
+  activeTab.value = tab
+  if (tab === 'reposts' && !repostsLoaded.value) {
+    await loadReposts()
+  }
+}
+
 async function loadProfile() {
   isLoading.value = true
   loadError.value = ''
@@ -77,6 +105,9 @@ async function loadProfile() {
   followingList.value = []
   followingCount.value = 0
   isFollowedByViewer.value = false
+  activeTab.value = 'posts'
+  repostsList.value = []
+  repostsLoaded.value = false
 
   try {
     let targetUser
@@ -310,10 +341,25 @@ watch(
     </section>
 
     <nav class="profile-tabs" aria-label="Seções do perfil">
-      <span class="profile-tabs__item is-active">
+      <button
+        class="profile-tabs__item"
+        :class="{ 'is-active': activeTab === 'posts' }"
+        type="button"
+        @click="switchTab('posts')"
+      >
         <AppIcon name="grid" />
         <span>Publicações</span>
-      </span>
+      </button>
+
+      <button
+        class="profile-tabs__item"
+        :class="{ 'is-active': activeTab === 'reposts' }"
+        type="button"
+        @click="switchTab('reposts')"
+      >
+        <AppIcon name="repost" />
+        <span>Republicações</span>
+      </button>
 
       <RouterLink class="profile-tabs__item" :to="followersRoute">
         <AppIcon name="profile" />
@@ -326,37 +372,70 @@ watch(
       </RouterLink>
     </nav>
 
-    <section v-if="postsList.length > 0" class="profile-grid">
-      <RouterLink
-        v-for="post in postsList"
-        :key="post.id"
-        :to="{ name: 'post-detalhes', params: { postId: post.id } }"
-        class="profile-grid__item"
-      >
-        <img :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+    <!-- Posts grid -->
+    <template v-if="activeTab === 'posts'">
+      <section v-if="postsList.length > 0" class="profile-grid">
+        <RouterLink
+          v-for="post in postsList"
+          :key="post.id"
+          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+          class="profile-grid__item"
+        >
+          <img :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+          <div class="profile-grid__overlay">
+            <span>{{ post.likesCount }} curtidas</span>
+            <span>{{ post.commentsCount }} comentários</span>
+          </div>
+        </RouterLink>
+      </section>
 
-        <div class="profile-grid__overlay">
-          <span>{{ post.likesCount }} curtidas</span>
-          <span>{{ post.commentsCount }} comentários</span>
-        </div>
-      </RouterLink>
-    </section>
+      <section v-else class="profile-empty card border-0">
+        <h3>Nenhum post por aqui ainda</h3>
+        <p>
+          {{ isOwnProfile
+            ? 'Publique algo para preencher sua grade e mostrar atividade no perfil.'
+            : 'Quando este usuário publicar, a grade começa a aparecer aqui.' }}
+        </p>
+        <RouterLink
+          v-if="isOwnProfile"
+          class="btn btn-primary align-self-start"
+          :to="{ name: 'criar' }"
+        >
+          Criar primeiro post
+        </RouterLink>
+      </section>
+    </template>
 
-    <section v-else class="profile-empty card border-0">
-      <h3>Nenhum post por aqui ainda</h3>
-      <p>
-        {{ isOwnProfile
-          ? 'Publique algo para preencher sua grade e mostrar atividade no perfil.'
-          : 'Quando este usuário publicar, a grade começa a aparecer aqui.' }}
-      </p>
-      <RouterLink
-        v-if="isOwnProfile"
-        class="btn btn-primary align-self-start"
-        :to="{ name: 'criar' }"
-      >
-        Criar primeiro post
-      </RouterLink>
-    </section>
+    <!-- Reposts grid -->
+    <template v-if="activeTab === 'reposts'">
+      <div v-if="repostsLoading" class="profile-grid">
+        <div v-for="n in 6" :key="n" class="profile-grid__skeleton" />
+      </div>
+
+      <section v-else-if="repostsList.length > 0" class="profile-grid">
+        <RouterLink
+          v-for="post in repostsList"
+          :key="post.id"
+          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+          class="profile-grid__item"
+        >
+          <img :src="post.imageUrl" :alt="post.imageAlt" loading="lazy" />
+          <div class="profile-grid__overlay">
+            <span>@{{ post.author.username }}</span>
+            <span>{{ post.likesCount }} curtidas</span>
+          </div>
+        </RouterLink>
+      </section>
+
+      <section v-else class="profile-empty card border-0">
+        <h3>Nenhuma republicação ainda</h3>
+        <p>
+          {{ isOwnProfile
+            ? 'Posts que você republicar de outros usuários aparecerão aqui.'
+            : 'Quando este usuário republicar algo, aparecerá aqui.' }}
+        </p>
+      </section>
+    </template>
   </section>
 </template>
 
@@ -521,6 +600,7 @@ watch(
   gap: 0.55rem;
   padding-top: 1rem;
   margin-top: -1rem;
+  border: 0;
   border-top: 1px solid transparent;
   color: var(--app-muted);
   font-size: 0.72rem;
@@ -528,6 +608,8 @@ watch(
   letter-spacing: 0.12em;
   text-decoration: none;
   text-transform: uppercase;
+  background: none;
+  cursor: pointer;
 }
 
 .profile-tabs__item.is-active {
@@ -593,6 +675,17 @@ watch(
 
 .profile-empty p {
   margin: 0;
+}
+
+.profile-grid__skeleton {
+  aspect-ratio: 1 / 1;
+  background: var(--app-surface-soft);
+  animation: profile-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes profile-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
 }
 
 @media (min-width: 768px) {

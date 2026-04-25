@@ -27,6 +27,11 @@ class Post extends Model
         return $this->hasMany(Save::class);
     }
 
+    public function reposts()
+    {
+        return $this->hasMany(Repost::class);
+    }
+
     public function comments()
     {
         return $this->hasMany(Comment::class)->latest();
@@ -47,9 +52,14 @@ class Post extends Model
         return $this->saves()->where('user_id', $user->id)->exists();
     }
 
+    public function isRepostedBy(User $user): bool
+    {
+        return $this->reposts()->where('user_id', $user->id)->exists();
+    }
+
     public function scopeWithPostCounts(Builder $query): void
     {
-        $query->withCount(['likes', 'comments']);
+        $query->withCount(['likes', 'comments', 'reposts']);
     }
 
     public function scopeWithLikedByViewer(Builder $query, ?User $viewer): void
@@ -63,6 +73,13 @@ class Post extends Model
     {
         if ($viewer) {
             $query->withExists(['saves as saved_by_me' => fn ($q) => $q->where('user_id', $viewer->id)]);
+        }
+    }
+
+    public function scopeWithRepostedByViewer(Builder $query, ?User $viewer): void
+    {
+        if ($viewer) {
+            $query->withExists(['reposts as reposted_by_me' => fn ($q) => $q->where('user_id', $viewer->id)]);
         }
     }
 }

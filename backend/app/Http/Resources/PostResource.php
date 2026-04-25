@@ -26,10 +26,15 @@ class PostResource extends JsonResource
                 $authUser !== null,
                 fn () => $this->preloadedBool('liked_by_me', fn () => $this->isLikedBy($authUser))
             ),
-            'saved_by_me'    => $this->when(
+            'saved_by_me'     => $this->when(
                 $authUser !== null,
                 fn () => $this->preloadedBool('saved_by_me', fn () => $this->isSavedBy($authUser))
             ),
+            'reposted_by_me'  => $this->when(
+                $authUser !== null,
+                fn () => $this->preloadedBool('reposted_by_me', fn () => $this->isRepostedBy($authUser))
+            ),
+            'reposts_count'   => $this->whenCounted('reposts'),
         ];
     }
 }

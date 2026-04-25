@@ -37,6 +37,8 @@ export function normalizePost(rawPost) {
     commentsCount: Number(rawPost.comments_count ?? rawPost.commentsCount ?? 0),
     likedByMe: Boolean(rawPost.liked_by_me ?? rawPost.likedByMe ?? false),
     savedByMe: Boolean(rawPost.saved_by_me ?? rawPost.savedByMe ?? false),
+    repostedByMe: Boolean(rawPost.reposted_by_me ?? rawPost.repostedByMe ?? false),
+    repostsCount: Number(rawPost.reposts_count ?? rawPost.repostsCount ?? 0),
     createdAt: rawPost.created_at ?? rawPost.createdAt ?? null,
     updatedAt: rawPost.updated_at ?? rawPost.updatedAt ?? null,
   }

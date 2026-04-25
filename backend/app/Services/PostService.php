@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Post;
+use App\Models\Repost;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
@@ -46,6 +47,7 @@ class PostService
             ->withPostCounts()
             ->withLikedByViewer($viewer)
             ->withSavedByViewer($viewer)
+            ->withRepostedByViewer($viewer)
             ->latest()
             ->paginate($perPage);
     }
@@ -56,6 +58,7 @@ class PostService
             ->withPostCounts()
             ->withLikedByViewer($viewer)
             ->withSavedByViewer($viewer)
+            ->withRepostedByViewer($viewer)
             ->latest()
             ->paginate($perPage);
     }
@@ -66,6 +69,23 @@ class PostService
             ->withPostCounts()
             ->withLikedByViewer($viewer)
             ->withSavedByViewer($viewer)
+            ->withRepostedByViewer($viewer)
             ->findOrFail($id);
+    }
+
+    public function repostsByUser(User $user, int $perPage = 15, ?User $viewer = null): LengthAwarePaginator
+    {
+        $repostIds = Repost::where('user_id', $user->id)
+            ->latest('created_at')
+            ->pluck('post_id');
+
+        return Post::whereIn('id', $repostIds)
+            ->with('user')
+            ->withPostCounts()
+            ->withLikedByViewer($viewer)
+            ->withSavedByViewer($viewer)
+            ->withRepostedByViewer($viewer)
+            ->orderByRaw('FIELD(id, ' . $repostIds->implode(',') . ')')
+            ->paginate($perPage);
     }
 }

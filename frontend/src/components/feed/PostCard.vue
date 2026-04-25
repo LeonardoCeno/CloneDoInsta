@@ -12,7 +12,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['toggle-like', 'toggle-save', 'submit-comment'])
+const emit = defineEmits(['toggle-like', 'toggle-save', 'toggle-repost', 'submit-comment'])
 
 const { currentUser } = useAuth()
 
@@ -156,6 +156,17 @@ function handleCommentSubmit() {
           <RouterLink :to="postLink" class="feed-post__icon-button" aria-label="Abrir detalhes do post">
             <AppIcon name="share" />
           </RouterLink>
+
+          <button
+            v-if="!isOwnPost"
+            class="feed-post__icon-button"
+            :class="{ 'is-reposted': post.repostedByMe }"
+            type="button"
+            :aria-label="post.repostedByMe ? 'Remover republicação' : 'Republicar'"
+            @click="emit('toggle-repost', post.id)"
+          >
+            <AppIcon name="repost" />
+          </button>
         </div>
 
         <button
@@ -319,6 +330,10 @@ function handleCommentSubmit() {
 
 .feed-post__icon-button.is-saved {
   color: var(--app-link);
+}
+
+.feed-post__icon-button.is-reposted {
+  color: #3cc663;
 }
 
 .feed-post__icon-button:disabled {

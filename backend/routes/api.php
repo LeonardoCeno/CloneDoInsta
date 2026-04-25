@@ -10,6 +10,7 @@ use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaveController;
 use App\Http\Controllers\ExploreController;
+use App\Http\Controllers\RepostController;
 use App\Http\Controllers\StoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,8 +55,9 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/{username}', [ProfileController::class, 'show'])
         ->where('username', '[a-zA-Z0-9._-]+');
 
-    // Profile posts
-    Route::get('users/{user}/posts', [ProfileController::class, 'posts']);
+    // Profile posts & reposts
+    Route::get('users/{user}/posts',   [ProfileController::class, 'posts']);
+    Route::get('users/{user}/reposts', [RepostController::class, 'userReposts']);
 
     // Follow / social
     Route::post('users/{user}/follow',      [FollowController::class, 'follow']);
@@ -73,8 +75,10 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::post('posts/{post}/like',     [LikeController::class, 'store']);
     Route::delete('posts/{post}/unlike', [LikeController::class, 'destroy']);
     Route::get('posts/{post}/likes',     [LikeController::class, 'index']);
-    Route::post('posts/{post}/save',     [SaveController::class, 'store']);
-    Route::delete('posts/{post}/unsave', [SaveController::class, 'destroy']);
+    Route::post('posts/{post}/save',      [SaveController::class, 'store']);
+    Route::delete('posts/{post}/unsave',  [SaveController::class, 'destroy']);
+    Route::post('posts/{post}/repost',    [RepostController::class, 'store']);
+    Route::delete('posts/{post}/unrepost',[RepostController::class, 'destroy']);
     Route::post('posts/{post}/comments', [CommentController::class, 'store']);
     Route::get('posts/{post}/comments',  [CommentController::class, 'index']);
 
