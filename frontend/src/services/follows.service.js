@@ -6,7 +6,7 @@ export async function follow(userId) {
 }
 
 export async function unfollow(userId) {
-  const { data } = await api.delete(`/users/${userId}/unfollow`)
+  const { data } = await api.delete(`/users/${userId}/follow`)
   return data
 }
 

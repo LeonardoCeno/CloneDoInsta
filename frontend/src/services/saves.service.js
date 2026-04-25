@@ -6,7 +6,7 @@ export async function save(postId) {
 }
 
 export async function unsave(postId) {
-  const { data } = await api.delete(`/posts/${postId}/unsave`)
+  const { data } = await api.delete(`/posts/${postId}/save`)
   return data
 }
 

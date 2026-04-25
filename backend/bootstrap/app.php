@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\SelfFollowException;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
@@ -49,6 +50,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (MethodNotAllowedHttpException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Método não permitido.'], 405);
+            }
+        });
+
+        $exceptions->render(function (SelfFollowException $e, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => $e->getMessage()], 422);
             }
         });
     })->create();

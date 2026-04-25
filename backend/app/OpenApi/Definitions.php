@@ -48,7 +48,9 @@ namespace App\OpenApi;
  *     @OA\Property(property="likes_count", type="integer", example=42),
  *     @OA\Property(property="comments_count", type="integer", example=7),
  *     @OA\Property(property="liked_by_me", type="boolean", nullable=true, example=false),
- *     @OA\Property(property="saved_by_me", type="boolean", nullable=true, example=false)
+ *     @OA\Property(property="saved_by_me", type="boolean", nullable=true, example=false),
+ *     @OA\Property(property="reposted_by_me", type="boolean", nullable=true, example=false),
+ *     @OA\Property(property="reposts_count", type="integer", example=3)
  * )
  *
  * @OA\Schema(
@@ -68,6 +70,15 @@ namespace App\OpenApi;
  *     @OA\Property(property="data", type="object", description="Payload variável por tipo"),
  *     @OA\Property(property="read_at", type="string", format="date-time", nullable=true),
  *     @OA\Property(property="created_at", type="string", format="date-time")
+ * )
+ *
+ * @OA\Schema(
+ *     schema="Story",
+ *     @OA\Property(property="id", type="integer", example=1),
+ *     @OA\Property(property="image_url", type="string", example="http://localhost:8000/storage/stories/abc.jpg"),
+ *     @OA\Property(property="seen_by_me", type="boolean", example=false),
+ *     @OA\Property(property="created_at", type="string", format="date-time"),
+ *     @OA\Property(property="expires_at", type="string", format="date-time", description="24h após criação")
  * )
  *
  * @OA\Schema(

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Exceptions\SelfFollowException;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Http\Exceptions\HttpResponseException;
 
 class FollowService
 {
@@ -13,9 +13,7 @@ class FollowService
     public function follow(User $follower, User $target): void
     {
         if ($follower->id === $target->id) {
-            throw new HttpResponseException(
-                response()->json(['message' => 'Você não pode seguir a si mesmo.'], 422)
-            );
+            throw new SelfFollowException();
         }
 
         $follower->following()->syncWithoutDetaching([$target->id]);

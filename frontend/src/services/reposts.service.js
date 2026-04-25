@@ -6,7 +6,7 @@ export async function repost(postId) {
 }
 
 export async function unrepost(postId) {
-  const { data } = await api.delete(`/posts/${postId}/unrepost`)
+  const { data } = await api.delete(`/posts/${postId}/repost`)
   return data
 }
 

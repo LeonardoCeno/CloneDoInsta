@@ -156,7 +156,7 @@ namespace App\OpenApi;
  *     )
  * )
  *
- * @OA\Delete(path="/users/{user}/unfollow", tags={"Social"}, summary="Deixar de seguir usuário",
+ * @OA\Delete(path="/users/{user}/follow", tags={"Social"}, summary="Deixar de seguir usuário",
  *     security={{"bearerAuth":{}}},
  *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=2),
  *     @OA\Response(response=200, description="Deixou de seguir",
@@ -274,7 +274,7 @@ namespace App\OpenApi;
  *     @OA\Response(response=404, ref="#/components/responses/404")
  * )
  *
- * @OA\Delete(path="/posts/{post}/unlike", tags={"Likes"}, summary="Descurtir post",
+ * @OA\Delete(path="/posts/{post}/like", tags={"Likes"}, summary="Descurtir post",
  *     security={{"bearerAuth":{}}},
  *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
  *     @OA\Response(response=200, description="Post descurtido",
@@ -307,7 +307,7 @@ namespace App\OpenApi;
  *     @OA\Response(response=404, ref="#/components/responses/404")
  * )
  *
- * @OA\Delete(path="/posts/{post}/unsave", tags={"Salvos"}, summary="Remover post dos salvos",
+ * @OA\Delete(path="/posts/{post}/save", tags={"Salvos"}, summary="Remover post dos salvos",
  *     security={{"bearerAuth":{}}},
  *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
  *     @OA\Response(response=200, description="Post removido dos salvos",
@@ -404,6 +404,107 @@ namespace App\OpenApi;
  *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Notificações marcadas como lidas."))
  *     ),
  *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Get(path="/posts/explore", tags={"Posts"}, summary="Explorar posts de toda a rede",
+ *     description="Retorna posts de todos os usuários (não apenas seguidos), útil para a tela Explorar.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=18, maximum=100)),
+ *     @OA\Parameter(name="page", in="query", @OA\Schema(type="integer", default=1)),
+ *     @OA\Response(response=200, description="Posts paginados",
+ *         @OA\JsonContent(ref="#/components/schemas/PaginatedPosts")
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Post(path="/posts/{post}/repost", tags={"Republicações"}, summary="Republicar post",
+ *     description="Adiciona o post à seção de republicações do usuário autenticado. Não é possível republicar o próprio post.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Post republicado",
+ *         @OA\JsonContent(@OA\Property(property="reposted", type="boolean", example=true))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404"),
+ *     @OA\Response(response=422, description="Tentativa de republicar o próprio post",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Não é possível repostar o próprio post."))
+ *     )
+ * )
+ *
+ * @OA\Delete(path="/posts/{post}/repost", tags={"Republicações"}, summary="Remover republicação",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="post", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Republicação removida",
+ *         @OA\JsonContent(@OA\Property(property="reposted", type="boolean", example=false))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Get(path="/users/{user}/reposts", tags={"Republicações"}, summary="Republicações de um usuário",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="user", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer", default=15, maximum=100)),
+ *     @OA\Response(response=200, description="Posts republicados paginados",
+ *         @OA\JsonContent(ref="#/components/schemas/PaginatedPosts")
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Get(path="/stories/feed", tags={"Stories"}, summary="Stories dos usuários seguidos",
+ *     description="Retorna grupos de stories agrupados por usuário. Os próprios stories do usuário autenticado aparecem primeiro.",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Response(response=200, description="Grupos de stories",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="user", ref="#/components/schemas/User"),
+ *                 @OA\Property(property="has_unseen", type="boolean", example=true),
+ *                 @OA\Property(property="stories", type="array",
+ *                     @OA\Items(ref="#/components/schemas/Story")
+ *                 )
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401")
+ * )
+ *
+ * @OA\Post(path="/stories", tags={"Stories"}, summary="Publicar story",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\RequestBody(required=true,
+ *         @OA\MediaType(mediaType="multipart/form-data",
+ *             @OA\Schema(required={"image"},
+ *                 @OA\Property(property="image", type="string", format="binary", description="JPEG, PNG ou WebP, máx 10MB")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(response=201, description="Story publicado",
+ *         @OA\JsonContent(ref="#/components/schemas/Story")
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=422, ref="#/components/responses/422")
+ * )
+ *
+ * @OA\Post(path="/stories/{story}/seen", tags={"Stories"}, summary="Marcar story como visto",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="story", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Story marcado como visto",
+ *         @OA\JsonContent(@OA\Property(property="seen", type="boolean", example=true))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
+ * )
+ *
+ * @OA\Delete(path="/stories/{story}", tags={"Stories"}, summary="Remover story",
+ *     security={{"bearerAuth":{}}},
+ *     @OA\Parameter(name="story", in="path", required=true, @OA\Schema(type="integer"), example=1),
+ *     @OA\Response(response=200, description="Story removido",
+ *         @OA\JsonContent(@OA\Property(property="message", type="string", example="Story removido."))
+ *     ),
+ *     @OA\Response(response=401, ref="#/components/responses/401"),
+ *     @OA\Response(response=403, ref="#/components/responses/403"),
+ *     @OA\Response(response=404, ref="#/components/responses/404")
  * )
  */
 class Endpoints {}

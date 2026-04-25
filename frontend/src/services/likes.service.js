@@ -6,7 +6,7 @@ export async function like(postId) {
 }
 
 export async function unlike(postId) {
-  const { data } = await api.delete(`/posts/${postId}/unlike`)
+  const { data } = await api.delete(`/posts/${postId}/like`)
   return data
 }
 

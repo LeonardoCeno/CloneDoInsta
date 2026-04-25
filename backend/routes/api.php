@@ -60,8 +60,8 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/{user}/reposts', [RepostController::class, 'userReposts']);
 
     // Follow / social
-    Route::post('users/{user}/follow',      [FollowController::class, 'follow']);
-    Route::delete('users/{user}/unfollow',  [FollowController::class, 'unfollow']);
+    Route::post('users/{user}/follow',   [FollowController::class, 'follow']);
+    Route::delete('users/{user}/follow', [FollowController::class, 'unfollow']);
     Route::get('users/{user}/followers',    [FollowController::class, 'followers']);
     Route::get('users/{user}/following',    [FollowController::class, 'following']);
     Route::get('users/{user}/is-following', [FollowController::class, 'isFollowing']);
@@ -72,13 +72,13 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('posts/{post}',        [PostController::class, 'show']);
     Route::put('posts/{post}',        [PostController::class, 'update']);
     Route::delete('posts/{post}',     [PostController::class, 'destroy']);
-    Route::post('posts/{post}/like',     [LikeController::class, 'store']);
-    Route::delete('posts/{post}/unlike', [LikeController::class, 'destroy']);
+    Route::post('posts/{post}/like',   [LikeController::class, 'store']);
+    Route::delete('posts/{post}/like', [LikeController::class, 'destroy']);
     Route::get('posts/{post}/likes',     [LikeController::class, 'index']);
-    Route::post('posts/{post}/save',      [SaveController::class, 'store']);
-    Route::delete('posts/{post}/unsave',  [SaveController::class, 'destroy']);
-    Route::post('posts/{post}/repost',    [RepostController::class, 'store']);
-    Route::delete('posts/{post}/unrepost',[RepostController::class, 'destroy']);
+    Route::post('posts/{post}/save',    [SaveController::class, 'store']);
+    Route::delete('posts/{post}/save',  [SaveController::class, 'destroy']);
+    Route::post('posts/{post}/repost',  [RepostController::class, 'store']);
+    Route::delete('posts/{post}/repost',[RepostController::class, 'destroy']);
     Route::post('posts/{post}/comments', [CommentController::class, 'store']);
     Route::get('posts/{post}/comments',  [CommentController::class, 'index']);
 
