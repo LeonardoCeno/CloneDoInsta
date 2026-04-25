@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
@@ -7,17 +7,31 @@ import { useAuth } from '@/composables/useAuth'
 import * as followsService from '@/services/follows.service'
 import * as usersService from '@/services/users.service'
 import { normalizeUser } from '@/stores/profileUtils'
+import { useNotificationsStore } from '@/stores/notifications'
+
+const notificationsStore = useNotificationsStore()
+
+let pollInterval = null
+
+onMounted(async () => {
+  await notificationsStore.fetchUnreadCount()
+  pollInterval = setInterval(() => notificationsStore.fetchUnreadCount(), 60_000)
+})
+
+onUnmounted(() => clearInterval(pollInterval))
 
 const route = useRoute()
 const router = useRouter()
 const { currentUser, logout } = useAuth()
 
 const navItems = [
-  { name: 'feed', label: 'Home', icon: 'home' },
-  { name: 'descobrir', label: 'Buscar', icon: 'search' },
-  { name: 'criar', label: 'Criar', icon: 'create' },
-  { name: 'salvos', label: 'Salvos', icon: 'save' },
-  { name: 'perfil', label: 'Perfil', icon: 'profile' },
+  { name: 'feed',          label: 'Home',          icon: 'home'     },
+  { name: 'explorar',      label: 'Explorar',       icon: 'discover' },
+  { name: 'descobrir',     label: 'Buscar',         icon: 'search'   },
+  { name: 'notificacoes',  label: 'Notificações',   icon: 'heart'    },
+  { name: 'criar',         label: 'Criar',          icon: 'create'   },
+  { name: 'salvos',        label: 'Salvos',         icon: 'save'     },
+  { name: 'perfil',        label: 'Perfil',         icon: 'profile'  },
 ]
 
 const activeNavName = computed(() => route.meta.navItem ?? route.name)
@@ -127,7 +141,15 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
             :class="{ 'is-active': activeNavName === item.name }"
             :title="item.label"
           >
-            <AppIcon :name="item.icon" />
+            <span class="ig-nav__icon-wrap">
+              <AppIcon :name="item.icon" />
+              <span
+                v-if="item.name === 'notificacoes' && notificationsStore.unreadCount > 0"
+                class="ig-nav__badge"
+              >
+                {{ notificationsStore.unreadCount > 99 ? '99+' : notificationsStore.unreadCount }}
+              </span>
+            </span>
             <span class="ig-nav__label">{{ item.label }}</span>
           </RouterLink>
         </nav>

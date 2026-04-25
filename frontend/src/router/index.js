@@ -13,6 +13,8 @@ import ProfileView from '@/views/app/ProfileView.vue'
 import EditProfileView from '@/views/app/EditProfileView.vue'
 import ProfileConnectionsView from '@/views/app/ProfileConnectionsView.vue'
 import SavedPostsView from '@/views/app/SavedPostsView.vue'
+import ExploreView from '@/views/app/ExploreView.vue'
+import NotificationsView from '@/views/app/NotificationsView.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
 import RegisterView from '@/views/auth/RegisterView.vue'
@@ -108,6 +110,23 @@ const routes = [
           sectionTitle: 'Conexões',
           sectionDescription: 'Navegue pelas listas de seguidores e de perfis seguidos sem sair do fluxo principal.',
           footerLabel: 'As relações ficam persistidas no backend e afetam o feed e o perfil em tempo real.',
+        },
+      },
+      {
+        path: 'notificacoes',
+        name: 'notificacoes',
+        component: NotificationsView,
+        meta: { navItem: 'notificacoes', sectionTitle: 'Notificações' },
+      },
+      {
+        path: 'explorar',
+        name: 'explorar',
+        component: ExploreView,
+        meta: {
+          navItem: 'explorar',
+          sectionTitle: 'Explorar',
+          sectionDescription: 'Descubra posts de todos os perfis da plataforma.',
+          footerLabel: 'Grid de posts aleatórios de toda a rede.',
         },
       },
       {

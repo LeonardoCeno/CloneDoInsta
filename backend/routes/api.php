@@ -9,6 +9,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PostController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaveController;
+use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\StoryController;
 use Illuminate\Support\Facades\Route;
 
@@ -64,6 +65,7 @@ Route::middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::get('users/{user}/is-following', [FollowController::class, 'isFollowing']);
 
     // Posts
+    Route::get('posts/explore',       [ExploreController::class, 'index']);
     Route::post('posts',              [PostController::class, 'store']);
     Route::get('posts/{post}',        [PostController::class, 'show']);
     Route::put('posts/{post}',        [PostController::class, 'update']);

@@ -26,3 +26,10 @@ export async function destroy(postId) {
   const { data } = await api.delete(`/posts/${postId}`)
   return data
 }
+
+export async function explore(perPage = 18, page = 1) {
+  const { data } = await api.get('/posts/explore', {
+    params: { per_page: perPage, page },
+  })
+  return data
+}

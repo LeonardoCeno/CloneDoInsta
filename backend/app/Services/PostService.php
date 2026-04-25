@@ -50,6 +50,16 @@ class PostService
             ->paginate($perPage);
     }
 
+    public function explore(int $perPage = 18, ?User $viewer = null): LengthAwarePaginator
+    {
+        return Post::with('user')
+            ->withPostCounts()
+            ->withLikedByViewer($viewer)
+            ->withSavedByViewer($viewer)
+            ->latest()
+            ->paginate($perPage);
+    }
+
     public function find(int $id, ?User $viewer = null): Post
     {
         return Post::with('user')
