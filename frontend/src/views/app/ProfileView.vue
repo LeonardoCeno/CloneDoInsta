@@ -246,64 +246,35 @@ watch(
       </div>
 
       <div class="profile-header__content">
-        <div class="profile-header__identity">
-          <div class="profile-header__title-row">
-            <h1>{{ profile.username }}</h1>
+        <div class="profile-header__top-row">
+          <h1 class="profile-header__username">{{ profile.username }}</h1>
 
-            <RouterLink
-              v-if="isOwnProfile"
-              class="profile-header__settings"
-              :to="{ name: 'perfil-editar' }"
-              aria-label="Editar configurações do perfil"
-            >
-              <AppIcon name="settings" />
-            </RouterLink>
-          </div>
-
-          <div class="profile-header__actions">
-            <RouterLink
-              v-if="isOwnProfile"
-              class="btn btn-outline-secondary"
-              :to="{ name: 'perfil-editar' }"
-            >
-              Editar perfil
-            </RouterLink>
-
+          <template v-if="!isOwnProfile">
             <button
-              v-else
-              class="btn"
-              :class="{
-                'btn-outline-secondary': !isFollowedByViewer && !isFollowPending,
-                'btn-primary': !isFollowedByViewer && !isFollowPending,
-                'btn-secondary': isFollowedByViewer || isFollowPending,
-              }"
+              class="ph-btn"
+              :class="(isFollowedByViewer || isFollowPending) ? 'ph-btn--secondary' : 'ph-btn--primary'"
               type="button"
               :disabled="followPending"
               @click="handleToggleFollow"
             >
               {{ followButtonLabel }}
             </button>
-
-            <RouterLink class="btn btn-outline-secondary" :to="followersRoute">
-              {{ secondaryActionLabel }}
-            </RouterLink>
-          </div>
+            <button class="ph-btn ph-btn--secondary" type="button">Mensagem</button>
+            <button class="ph-icon-btn" type="button" aria-label="Mais opções">
+              <AppIcon name="more" />
+            </button>
+          </template>
         </div>
 
         <div class="profile-header__stats">
-          <article>
-            <strong>{{ postsCount }}</strong>
-            <span>publicações</span>
-          </article>
-
-          <RouterLink class="profile-header__stat-link" :to="followersRoute">
-            <strong>{{ followersCount }}</strong>
-            <span>seguidores</span>
+          <span class="profile-header__stat">
+            <strong>{{ postsCount }}</strong> publicações
+          </span>
+          <RouterLink class="profile-header__stat profile-header__stat--link" :to="followersRoute">
+            <strong>{{ followersCount }}</strong> seguidores
           </RouterLink>
-
-          <RouterLink class="profile-header__stat-link" :to="followingRoute">
-            <strong>{{ followingCount }}</strong>
-            <span>seguindo</span>
+          <RouterLink class="profile-header__stat profile-header__stat--link" :to="followingRoute">
+            <strong>{{ followingCount }}</strong> seguindo
           </RouterLink>
         </div>
 
@@ -316,55 +287,17 @@ watch(
               : 'Este perfil ainda não escreveu uma bio.' }}
           </p>
         </div>
+
+        <!-- Own profile action buttons below bio -->
+        <div v-if="isOwnProfile" class="profile-header__own-actions">
+          <RouterLink class="ph-btn ph-btn--secondary ph-btn--block" :to="{ name: 'perfil-editar' }">
+            Editar perfil
+          </RouterLink>
+          <RouterLink class="ph-btn ph-btn--secondary ph-btn--block" :to="{ name: 'perfil-editar' }">
+            Ver Itens Arquivados
+          </RouterLink>
+        </div>
       </div>
-    </section>
-
-    <section class="profile-summary">
-      <RouterLink class="profile-summary__card" :to="followersRoute">
-        <div class="profile-summary__avatars">
-          <ProfileAvatar
-            v-for="account in followersPreview"
-            :key="`followers-${account.id}`"
-            :name="account.name"
-            :username="account.username"
-            :avatar-url="account.avatarUrl"
-            :colors="account.colors"
-            size="sm"
-            class="profile-summary__avatar"
-          />
-          <span v-if="followersPreview.length === 0" class="profile-summary__placeholder">
-            <AppIcon name="profile" />
-          </span>
-        </div>
-
-        <div class="profile-summary__copy">
-          <span>Seguidores</span>
-          <strong>{{ followersCount }} pessoas acompanham este perfil</strong>
-        </div>
-      </RouterLink>
-
-      <RouterLink class="profile-summary__card" :to="followingRoute">
-        <div class="profile-summary__avatars">
-          <ProfileAvatar
-            v-for="account in followingPreview"
-            :key="`following-${account.id}`"
-            :name="account.name"
-            :username="account.username"
-            :avatar-url="account.avatarUrl"
-            :colors="account.colors"
-            size="sm"
-            class="profile-summary__avatar"
-          />
-          <span v-if="followingPreview.length === 0" class="profile-summary__placeholder">
-            <AppIcon name="discover" />
-          </span>
-        </div>
-
-        <div class="profile-summary__copy">
-          <span>Seguindo</span>
-          <strong>{{ followingCount }} contas no radar</strong>
-        </div>
-      </RouterLink>
     </section>
 
     <section v-if="isPrivateAndHidden" class="profile-private card border-0">
@@ -487,134 +420,161 @@ watch(
 }
 
 .profile-header {
-  display: grid;
-  gap: 1.5rem;
-  padding-bottom: 2rem;
+  display: flex;
+  gap: 0;
+  padding: 1.25rem 0 2rem;
   border-bottom: 1px solid var(--app-border);
+  align-items: flex-start;
 }
 
 .profile-header__avatar {
+  flex: 0 0 280px;
   display: flex;
+  align-items: center;
   justify-content: center;
+  align-self: center;
 }
 
-.profile-header__content,
-.profile-header__identity,
-.profile-header__bio,
-.profile-summary__copy {
+.profile-header__content {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  gap: 0.45rem;
+  gap: 1rem;
 }
 
-.profile-header__title-row,
+.profile-header__top-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.profile-header__username {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 400;
+  color: var(--app-text);
+}
+
 .profile-header__actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
-.profile-header__title-row h1 {
-  margin: 0;
-  color: var(--app-text);
-  font-size: clamp(1.7rem, 4vw, 2.1rem);
+/* Action buttons */
+.ph-btn {
+  padding: 0.42rem 1rem;
+  border-radius: 0.55rem;
+  font-size: 0.88rem;
   font-weight: 600;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 150ms ease;
 }
 
-.profile-header__settings {
-  display: grid;
-  place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  color: var(--app-text);
+.ph-btn:hover { opacity: 0.85; }
+
+.ph-btn--primary {
+  background: var(--app-accent);
+  color: #fff;
+}
+
+.ph-btn--secondary {
   background: var(--app-surface-soft);
-  text-decoration: none;
-}
-
-.profile-header__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-}
-
-.profile-header__stats article,
-.profile-header__stat-link {
-  display: grid;
-  gap: 0.2rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.profile-header__stats strong {
   color: var(--app-text);
-  font-size: 1.12rem;
-}
-
-.profile-header__stats span,
-.profile-header__bio p,
-.profile-header__bio-muted,
-.profile-summary__copy span,
-.profile-empty p {
-  color: var(--app-muted);
-  line-height: 1.7;
-}
-
-.profile-header__bio strong {
-  color: var(--app-text);
-  font-size: 0.98rem;
-}
-
-.profile-summary {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.profile-summary__card {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 1rem;
   border: 1px solid var(--app-border);
-  border-radius: 1rem;
-  color: inherit;
-  text-decoration: none;
-  background: var(--app-surface);
 }
 
-.profile-summary__avatars {
+.ph-btn--block {
+  flex: 1;
+  justify-content: center;
+}
+
+.profile-header__own-actions {
   display: flex;
-  align-items: center;
-  min-width: 7rem;
+  gap: 0.6rem;
 }
 
-.profile-summary__avatar + .profile-summary__avatar {
-  margin-left: -0.55rem;
-}
-
-.profile-summary__placeholder {
+.ph-icon-btn {
   display: grid;
   place-items: center;
   width: 2.2rem;
   height: 2.2rem;
-  border: 1px solid var(--app-border);
   border-radius: 50%;
-  color: var(--app-muted);
+  border: 0;
+  background: none;
+  color: var(--app-text);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.ph-icon-btn:hover {
   background: var(--app-surface-soft);
 }
 
-.profile-summary__copy strong {
+.ph-icon-btn .app-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+/* Stats */
+.profile-header__stats {
+  display: flex;
+  align-items: center;
+  gap: 2.25rem;
+  font-size: 1rem;
+}
+
+.profile-header__stat {
   color: var(--app-text);
-  font-size: 0.95rem;
+}
+
+.profile-header__stat strong {
+  font-weight: 700;
+}
+
+.profile-header__stat--link {
+  text-decoration: none;
+  color: var(--app-text);
+  transition: color 150ms ease;
+}
+
+.profile-header__stat--link:hover {
+  color: var(--app-muted);
+}
+
+/* Bio */
+.profile-header__bio {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.profile-header__bio strong {
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+.profile-header__bio p,
+.profile-header__bio-muted,
+.profile-empty p {
+  margin: 0;
+  color: var(--app-muted);
+  white-space: pre-line;
 }
 
 .profile-tabs {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
-  padding-top: 1rem;
+  gap: 3.75rem;
   border-top: 1px solid var(--app-border);
 }
 
@@ -622,10 +582,10 @@ watch(
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
-  padding-top: 1rem;
-  margin-top: -1rem;
+  padding-bottom: 1rem;
+  margin-bottom: -1px;
   border: 0;
-  border-top: 1px solid transparent;
+  border-bottom: 1.5px solid transparent;
   color: var(--app-muted);
   font-size: 0.72rem;
   font-weight: 700;
@@ -634,16 +594,17 @@ watch(
   text-transform: uppercase;
   background: none;
   cursor: pointer;
+  padding-top: 0.75rem;
 }
 
 .profile-tabs__item.is-active {
-  border-top-color: var(--app-text);
+  border-bottom-color: var(--app-text);
   color: var(--app-text);
 }
 
 .profile-grid {
   display: grid;
-  gap: 0.2rem;
+  gap: 3px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -742,22 +703,32 @@ watch(
   50% { opacity: 0.45; }
 }
 
-@media (min-width: 768px) {
-  .profile-header {
-    grid-template-columns: minmax(10rem, 0.8fr) minmax(0, 1.2fr);
-    align-items: start;
-  }
-
-  .profile-summary {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 767.98px) {
+  .profile-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-header__avatar {
+    flex: none;
+    width: auto;
+  }
+
+  .profile-header__stats {
+    gap: 1.25rem;
+    font-size: 0.9rem;
+    justify-content: center;
+  }
+
+  .profile-header__top-row {
+    justify-content: center;
+  }
+
   .profile-tabs {
-    gap: 0.85rem;
+    gap: 1.5rem;
     overflow-x: auto;
-    justify-content: flex-start;
+    justify-content: center;
   }
 
   .profile-grid__overlay {

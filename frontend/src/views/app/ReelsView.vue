@@ -434,7 +434,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.85rem;
   height: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
@@ -445,7 +445,7 @@ onUnmounted(() => {
   flex: none;
   width: min(calc(100% - 80px), 420px);
   height: 100%;
-  border-radius: 1.25rem;
+  border-radius: 0.75rem;
   overflow: hidden;
   background: var(--app-surface);
 }
@@ -536,8 +536,7 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.5rem;
-  padding-bottom: 2rem;
+  gap: 1rem;
 }
 
 .reel-item__action {
@@ -583,6 +582,8 @@ onUnmounted(() => {
   font-size: 0.72rem;
   color: var(--app-muted);
   font-weight: 600;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .reels-nav {
@@ -599,8 +600,8 @@ onUnmounted(() => {
 .reels-nav__btn {
   display: grid;
   place-items: center;
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 3.2rem;
+  height: 3.2rem;
   padding: 0;
   border: 1px solid var(--app-border);
   border-radius: 50%;

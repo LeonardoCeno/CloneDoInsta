@@ -202,18 +202,22 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
             class="ig-sidebar__account"
             title="Abrir seu perfil"
           >
-            <ProfileAvatar
-              :name="currentUser?.name"
-              :username="currentUser?.username"
-              :avatar-url="currentUser?.avatarUrl"
-              :colors="currentUser?.colors"
-              size="sm"
-            />
+            <span class="ig-nav__icon-wrap">
+              <ProfileAvatar
+                :name="currentUser?.name"
+                :username="currentUser?.username"
+                :avatar-url="currentUser?.avatarUrl"
+                :colors="currentUser?.colors"
+                size="sm"
+              />
+            </span>
             <span class="ig-nav__label">Perfil</span>
           </RouterLink>
 
           <button class="ig-sidebar__more" type="button" title="Mais opções" @click="showMoreMenu = true">
-            <AppIcon name="menu" />
+            <span class="ig-nav__icon-wrap">
+              <AppIcon name="menu" />
+            </span>
             <span class="ig-nav__label">Mais</span>
           </button>
         </div>

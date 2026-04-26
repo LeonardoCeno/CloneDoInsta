@@ -41,7 +41,13 @@ body {
   margin: 0;
   color: var(--app-text);
   font-family: 'Instrument Sans', 'Segoe UI', sans-serif;
-  background: var(--app-bg);
+
+  background-image: 
+    radial-gradient(circle at 50% 50%, #1a1d22 0%, #0d1014 40%, #000 70%),
+    url("https://grainy-gradients.vercel.app/noise.svg");
+
+  background-attachment: fixed;
+  background-blend-mode: overlay;
 }
 
 ::selection {
