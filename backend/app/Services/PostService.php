@@ -17,7 +17,7 @@ class PostService
         $path = $image->storeAs(
             'posts',
             Str::uuid() . '.' . $image->getClientOriginalExtension(),
-            'public'
+            'gcs'
         );
 
         return Post::create([
@@ -36,7 +36,7 @@ class PostService
 
     public function delete(Post $post): void
     {
-        Storage::disk('public')->delete($post->image_path);
+        Storage::disk('gcs')->delete($post->image_path);
         $post->delete();
     }
 

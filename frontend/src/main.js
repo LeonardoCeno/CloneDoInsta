@@ -13,9 +13,8 @@ const authStore = useAuthStore(pinia)
 
 configureApi({
   getToken: () => authStore.token,
-  onUnauthorized: () => {
-    authStore.clearSession()
-  },
+  onUnauthorized: () => authStore.clearSession(),
+  refreshToken: () => authStore.refreshToken(),
 })
 
 app.use(router).mount('#app')

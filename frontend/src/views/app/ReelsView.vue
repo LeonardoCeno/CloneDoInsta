@@ -8,10 +8,13 @@ import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
 import * as savesService from '@/services/saves.service'
 import * as followsService from '@/services/follows.service'
+import * as repostsService from '@/services/reposts.service'
 import { normalizePost } from '@/stores/feed'
 import { useAuth } from '@/composables/useAuth'
+import { useToastStore } from '@/stores/toast'
 
 const { currentUser } = useAuth()
+const toastStore = useToastStore()
 
 const posts = ref([])
 const currentPage = ref(1)
@@ -22,6 +25,7 @@ const activeIndex = ref(0)
 const containerRef = ref(null)
 const likePending = ref(new Set())
 const savePending = ref(new Set())
+const repostPending = ref(new Set())
 const followPending = ref(new Set())
 const followedIds = ref(new Set())
 const followPendingIds = ref(new Set())
@@ -141,6 +145,24 @@ async function toggleSave(post) {
     const n = new Set(savePending.value)
     n.delete(post.id)
     savePending.value = n
+  }
+}
+
+async function toggleRepost(post) {
+  if (repostPending.value.has(post.id)) return
+  repostPending.value = new Set([...repostPending.value, post.id])
+
+  try {
+    if (post.repostedByMe) {
+      await repostsService.unrepost(post.id)
+      post.repostedByMe = false
+    } else {
+      await repostsService.repost(post.id)
+      post.repostedByMe = true
+      toastStore.show('Vídeo republicado!', 'success')
+    }
+  } finally {
+    repostPending.value = new Set([...repostPending.value].filter((id) => id !== post.id))
   }
 }
 
@@ -359,8 +381,15 @@ onUnmounted(() => {
         </div>
 
         <!-- Repost -->
-        <div class="reel-item__action">
-          <button class="reel-item__action-btn" type="button" aria-label="Republicar">
+        <div v-if="!isOwnPost(post)" class="reel-item__action">
+          <button
+            class="reel-item__action-btn"
+            :class="{ 'is-reposted': post.repostedByMe }"
+            type="button"
+            :disabled="repostPending.has(post.id)"
+            :aria-label="post.repostedByMe ? 'Remover republicação' : 'Republicar'"
+            @click="toggleRepost(post)"
+          >
             <AppIcon name="repost" />
           </button>
         </div>
@@ -571,6 +600,10 @@ onUnmounted(() => {
 
 .reel-item__action-btn.is-saved {
   color: var(--app-link);
+}
+
+.reel-item__action-btn.is-reposted {
+  color: #3cc663;
 }
 
 .reel-item__action-btn:disabled {

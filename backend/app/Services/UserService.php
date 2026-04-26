@@ -21,13 +21,13 @@ class UserService
     public function updateAvatar(User $user, UploadedFile $file): User
     {
         if ($user->avatar_path) {
-            Storage::disk('public')->delete($user->avatar_path);
+            Storage::disk('gcs')->delete($user->avatar_path);
         }
 
         $path = $file->storeAs(
             'avatars',
             Str::uuid() . '.' . $file->getClientOriginalExtension(),
-            'public'
+            'gcs'
         );
 
         $user->update(['avatar_path' => $path]);
@@ -44,10 +44,10 @@ class UserService
             $user->delete();
         });
 
-        Storage::disk('public')->delete($imagePaths);
+        Storage::disk('gcs')->delete($imagePaths);
 
         if ($avatarPath) {
-            Storage::disk('public')->delete($avatarPath);
+            Storage::disk('gcs')->delete($avatarPath);
         }
     }
 

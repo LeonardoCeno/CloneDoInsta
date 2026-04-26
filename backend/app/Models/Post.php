@@ -39,7 +39,7 @@ class Post extends Model
 
     public function getImageUrlAttribute(): string
     {
-        return asset('storage/' . $this->image_path);
+        return 'https://storage.googleapis.com/' . config('filesystems.disks.gcs.bucket') . '/' . $this->image_path;
     }
 
     public function getIsVideoAttribute(): bool

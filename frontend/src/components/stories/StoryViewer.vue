@@ -212,7 +212,7 @@ onUnmounted(() => {
                 title="Remover story"
                 @click="handleDelete"
               >
-                <AppIcon name="more" />
+                <AppIcon name="trash" />
               </button>
               <button
                 class="story-viewer__icon-btn"

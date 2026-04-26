@@ -17,7 +17,7 @@ class StoryService
         $path = $image->storeAs(
             'stories',
             Str::uuid() . '.' . $image->getClientOriginalExtension(),
-            'public'
+            'gcs'
         );
 
         return Story::create(['user_id' => $user->id, 'image_path' => $path]);
@@ -61,7 +61,7 @@ class StoryService
 
     public function delete(Story $story): void
     {
-        Storage::disk('public')->delete($story->image_path);
+        Storage::disk('gcs')->delete($story->image_path);
         $story->delete();
     }
 }

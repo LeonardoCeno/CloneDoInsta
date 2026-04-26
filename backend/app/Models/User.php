@@ -113,7 +113,7 @@ class User extends Authenticatable
     public function getAvatarUrlAttribute(): ?string
     {
         return $this->avatar_path
-            ? asset('storage/' . $this->avatar_path)
+            ? 'https://storage.googleapis.com/' . config('filesystems.disks.gcs.bucket') . '/' . $this->avatar_path
             : null;
     }
 

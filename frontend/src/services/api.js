@@ -11,14 +11,14 @@ export const api = axios.create({
 
 let authTokenGetter = () => ''
 let unauthorizedHandler = () => {}
+let tokenRefresher = null
 
-export function configureApi({ getToken, onUnauthorized }) {
-  if (typeof getToken === 'function') {
-    authTokenGetter = getToken
-  }
-  if (typeof onUnauthorized === 'function') {
-    unauthorizedHandler = onUnauthorized
-  }
+let pendingRefresh = null
+
+export function configureApi({ getToken, onUnauthorized, refreshToken }) {
+  if (typeof getToken === 'function') authTokenGetter = getToken
+  if (typeof onUnauthorized === 'function') unauthorizedHandler = onUnauthorized
+  if (typeof refreshToken === 'function') tokenRefresher = refreshToken
 }
 
 api.interceptors.request.use((config) => {
@@ -31,10 +31,34 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const original = error.config
+
+    // Only attempt refresh on 401, if we have a refresher, and haven't retried yet
+    if (error.response?.status === 401 && tokenRefresher && !original._retry) {
+      original._retry = true
+
+      try {
+        // Singleton: if a refresh is already in flight, wait for it instead of firing another
+        if (!pendingRefresh) {
+          pendingRefresh = tokenRefresher().finally(() => {
+            pendingRefresh = null
+          })
+        }
+
+        const newToken = await pendingRefresh
+        original.headers.Authorization = `Bearer ${newToken}`
+        return api(original)
+      } catch {
+        unauthorizedHandler()
+        return Promise.reject(error)
+      }
+    }
+
     if (error.response?.status === 401) {
       unauthorizedHandler()
     }
+
     return Promise.reject(error)
   },
 )

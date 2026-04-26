@@ -60,6 +60,19 @@ return [
             'report' => false,
         ],
 
+        'gcs' => [
+            'driver' => 's3',
+            'key' => env('GCS_KEY'),
+            'secret' => env('GCS_SECRET'),
+            'region' => 'auto',
+            'bucket' => env('GCS_BUCKET', 'manya-media'),
+            'endpoint' => 'https://storage.googleapis.com',
+            'use_path_style_endpoint' => false,
+            'url' => 'https://storage.googleapis.com/' . env('GCS_BUCKET', 'manya-media'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

@@ -98,6 +98,17 @@ export const useAuthStore = defineStore('auth', {
       return this.user
     },
 
+    async refreshToken() {
+      const response = await authService.refresh()
+      const newToken = response.access_token
+      this.token = newToken
+      if (response.user) {
+        this.user = normalizeUser(response.user)
+      }
+      writeStoredToken(newToken)
+      return newToken
+    },
+
     async logout() {
       try {
         await authService.logout()
