@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
+import AppIcon from '@/components/layout/AppIcon.vue'
 import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 import { useAuth } from '@/composables/useAuth'
 import * as postsService from '@/services/posts.service'
@@ -12,21 +13,18 @@ import { extractErrorMessage } from '@/services/api'
 import { normalizePost, useFeed } from '@/composables/useFeed'
 import { normalizeUser } from '@/stores/profileUtils'
 
-const COMMENTS_PAGE_SIZE = 10
+const COMMENTS_PAGE_SIZE = 20
 
 const route = useRoute()
 const router = useRouter()
-
 const { currentUser } = useAuth()
 const { applyPostPatch } = useFeed()
 
 const post = ref(null)
 const loadError = ref('')
 const isLoading = ref(false)
-const feedbackMessage = ref('')
 
 const comments = ref([])
-const commentsTotal = ref(0)
 const commentsCurrentPage = ref(1)
 const commentsHasMore = ref(false)
 const commentsLoading = ref(false)
@@ -36,9 +34,12 @@ const isSubmittingComment = ref(false)
 const likePending = ref(false)
 const savePending = ref(false)
 const deletePending = ref(false)
+const showOwnerMenu = ref(false)
 
 const postId = computed(() =>
-  typeof route.params.postId === 'string' ? route.params.postId.trim() : String(route.params.postId ?? ''),
+  typeof route.params.postId === 'string'
+    ? route.params.postId.trim()
+    : String(route.params.postId ?? ''),
 )
 
 const isOwner = computed(
@@ -46,41 +47,28 @@ const isOwner = computed(
 )
 
 const authorLink = computed(() => {
-  if (!post.value) {
-    return { name: 'perfil' }
-  }
-  if (currentUser.value?.username === post.value.author.username) {
-    return { name: 'perfil' }
-  }
+  if (!post.value) return { name: 'perfil' }
+  if (currentUser.value?.username === post.value.author.username) return { name: 'perfil' }
   return { name: 'perfil', query: { user: post.value.author.username } }
 })
 
 const trimmedComment = computed(() => commentText.value.trim())
+
 const likesLabel = computed(() => {
-  const total = post.value?.likesCount ?? 0
-  return `${total} ${total === 1 ? 'curtida' : 'curtidas'}`
+  const n = post.value?.likesCount ?? 0
+  return `${n.toLocaleString('pt-BR')} ${n === 1 ? 'curtida' : 'curtidas'}`
 })
-const commentsLabel = computed(() => {
-  const total = post.value?.commentsCount ?? 0
-  return `${total} ${total === 1 ? 'comentário' : 'comentários'}`
-})
+
 const publishedLabel = computed(() => {
-  if (!post.value?.createdAt) {
-    return ''
-  }
+  if (!post.value?.createdAt) return ''
   return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   }).format(new Date(post.value.createdAt))
 })
 
 function normalizeComment(raw) {
-  if (!raw || typeof raw !== 'object') {
-    return null
-  }
+  if (!raw || typeof raw !== 'object') return null
   const author = normalizeUser(raw.user) || {
     id: raw.user_id ?? null,
     name: 'Usuário',
@@ -99,15 +87,23 @@ function normalizeComment(raw) {
   }
 }
 
-async function loadPost() {
-  if (!postId.value) {
-    return
-  }
+function formatCommentDate(value) {
+  if (!value) return ''
+  const diffMs = Math.max(0, Date.now() - new Date(value).getTime())
+  const minute = 60_000
+  const hour = 60 * minute
+  const day = 24 * hour
+  const week = 7 * day
+  if (diffMs < hour) return `${Math.max(1, Math.floor(diffMs / minute))} min`
+  if (diffMs < day) return `${Math.floor(diffMs / hour)} h`
+  if (diffMs < week) return `${Math.floor(diffMs / day)} d`
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(value))
+}
 
+async function loadPost() {
+  if (!postId.value) return
   isLoading.value = true
   loadError.value = ''
-  feedbackMessage.value = ''
-
   try {
     const raw = await postsService.show(postId.value)
     post.value = normalizePost(raw)
@@ -120,38 +116,23 @@ async function loadPost() {
 }
 
 async function loadComments({ reset = true } = {}) {
-  if (!postId.value) {
-    return
-  }
-
+  if (!postId.value) return
   commentsLoading.value = true
-
   try {
     const page = reset ? 1 : commentsCurrentPage.value + 1
     const response = await commentsService.listByPost(postId.value, COMMENTS_PAGE_SIZE, page)
     const items = (response.data ?? []).map(normalizeComment).filter(Boolean)
-
     comments.value = reset ? items : [...comments.value, ...items]
-    commentsTotal.value = Number(response.total ?? comments.value.length)
     commentsCurrentPage.value = Number(response.current_page ?? page)
     commentsHasMore.value = Boolean(response.next_page_url)
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(
-      error,
-      'Não foi possível carregar os comentários.',
-    )
   } finally {
     commentsLoading.value = false
   }
 }
 
 async function handleToggleLike() {
-  if (!post.value || likePending.value) {
-    return
-  }
-
+  if (!post.value || likePending.value) return
   likePending.value = true
-
   try {
     const action = post.value.likedByMe ? likesService.unlike : likesService.like
     const response = await action(post.value.id)
@@ -160,645 +141,720 @@ async function handleToggleLike() {
       likedByMe: Boolean(response.liked),
       likesCount: Number(response.likes_count ?? post.value.likesCount),
     }
-    applyPostPatch(post.value.id, {
-      likedByMe: post.value.likedByMe,
-      likesCount: post.value.likesCount,
-    })
-    feedbackMessage.value = post.value.likedByMe ? 'Post curtido.' : 'Curtida removida.'
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível atualizar a curtida.')
+    applyPostPatch(post.value.id, { likedByMe: post.value.likedByMe, likesCount: post.value.likesCount })
   } finally {
     likePending.value = false
   }
 }
 
 async function handleToggleSave() {
-  if (!post.value || savePending.value) {
-    return
-  }
-
+  if (!post.value || savePending.value) return
   savePending.value = true
-
   try {
     const action = post.value.savedByMe ? savesService.unsave : savesService.save
     const response = await action(post.value.id)
     post.value = { ...post.value, savedByMe: Boolean(response.saved) }
     applyPostPatch(post.value.id, { savedByMe: post.value.savedByMe })
-    feedbackMessage.value = post.value.savedByMe ? 'Post salvo.' : 'Post removido dos salvos.'
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível salvar o post.')
   } finally {
     savePending.value = false
   }
 }
 
 async function handleCommentSubmit() {
-  if (!trimmedComment.value || !post.value || isSubmittingComment.value) {
-    return
-  }
-
+  if (!trimmedComment.value || !post.value || isSubmittingComment.value) return
   isSubmittingComment.value = true
-
   try {
     const created = await commentsService.create(post.value.id, trimmedComment.value)
     const normalized = normalizeComment(created)
     if (normalized) {
       comments.value = [normalized, ...comments.value]
-      commentsTotal.value = commentsTotal.value + 1
     }
     post.value = { ...post.value, commentsCount: post.value.commentsCount + 1 }
-    applyPostPatch(post.value.id, (current) => ({ commentsCount: current.commentsCount + 1 }))
+    applyPostPatch(post.value.id, (c) => ({ commentsCount: c.commentsCount + 1 }))
     commentText.value = ''
-    feedbackMessage.value = 'Comentário enviado ao post.'
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível enviar o comentário.')
   } finally {
     isSubmittingComment.value = false
   }
 }
 
 async function handleDeleteComment(comment) {
-  if (!comment || !currentUser.value) {
-    return
-  }
-  if (comment.authorId !== currentUser.value.id) {
-    return
-  }
-  if (typeof window !== 'undefined' && !window.confirm('Deseja realmente apagar este comentário?')) {
-    return
-  }
-
+  if (!comment || comment.authorId !== currentUser.value?.id) return
+  if (!window.confirm('Apagar este comentário?')) return
   try {
     await commentsService.destroy(comment.id)
-    comments.value = comments.value.filter((item) => item.id !== comment.id)
-    commentsTotal.value = Math.max(0, commentsTotal.value - 1)
+    comments.value = comments.value.filter((c) => c.id !== comment.id)
     if (post.value) {
       post.value = { ...post.value, commentsCount: Math.max(0, post.value.commentsCount - 1) }
-      applyPostPatch(post.value.id, (current) => ({
-        commentsCount: Math.max(0, current.commentsCount - 1),
-      }))
+      applyPostPatch(post.value.id, (c) => ({ commentsCount: Math.max(0, c.commentsCount - 1) }))
     }
-    feedbackMessage.value = 'Comentário apagado.'
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível apagar o comentário.')
+  } catch {
+    // silently fail
   }
 }
 
 async function handleDeletePost() {
-  if (!post.value || !isOwner.value || deletePending.value) {
-    return
-  }
-  if (typeof window !== 'undefined' && !window.confirm('Deseja realmente deletar este post?')) {
-    return
-  }
-
+  if (!post.value || !isOwner.value || deletePending.value) return
+  if (!window.confirm('Deletar este post permanentemente?')) return
   deletePending.value = true
-
+  showOwnerMenu.value = false
   try {
     await postsService.destroy(post.value.id)
     router.replace({ name: 'perfil' })
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível deletar o post agora.')
   } finally {
     deletePending.value = false
   }
 }
 
-function formatDate(value) {
-  if (!value) {
-    return ''
-  }
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+function close() {
+  router.back()
 }
 
 watch(
   postId,
   async () => {
-    feedbackMessage.value = ''
     commentText.value = ''
     comments.value = []
-    commentsTotal.value = 0
     commentsCurrentPage.value = 1
     commentsHasMore.value = false
     await loadPost()
-    if (post.value) {
-      await loadComments({ reset: true })
-    }
+    if (post.value) await loadComments({ reset: true })
   },
   { immediate: true },
 )
 </script>
 
 <template>
-  <section v-if="isLoading && !post" class="card border-0 shadow-sm">
-    <div class="card-body p-4">
-      <p class="mb-0 text-body-secondary">Carregando post...</p>
-    </div>
-  </section>
+  <!-- Modal overlay -->
+  <Teleport to="body">
+    <div class="pm-overlay" role="dialog" aria-modal="true" @click.self="close">
 
-  <section v-else-if="post" class="post-details">
-    <p v-if="feedbackMessage" class="post-details__feedback" role="status">
-      {{ feedbackMessage }}
-    </p>
+      <!-- Close button -->
+      <button class="pm-close" type="button" aria-label="Fechar" @click="close">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 6 6 18"/><path d="M6 6l12 12"/>
+        </svg>
+      </button>
 
-    <article class="post-details__card card border-0">
-      <div class="post-details__media-panel">
-        <MediaDisplay
-          class="post-details__image"
-          :src="post.imageUrl"
-          :alt="post.imageAlt"
-          :is-video="post.isVideo"
-          :autoplay="post.isVideo"
-          :muted="true"
-          :controls="true"
-          :loop="true"
-        />
+      <!-- Loading -->
+      <div v-if="isLoading && !post" class="pm-loading">
+        <span>Carregando...</span>
       </div>
 
-      <div class="post-details__content">
-        <header class="post-details__header">
-          <RouterLink :to="authorLink" class="post-details__author">
-            <ProfileAvatar
-              :name="post.author.name"
-              :username="post.author.username"
-              :avatar-url="post.author.avatarUrl"
-              :colors="post.author.colors"
-              size="md"
-            />
+      <!-- Error -->
+      <div v-else-if="loadError && !post" class="pm-error">
+        <p>{{ loadError }}</p>
+        <button type="button" @click="close">Fechar</button>
+      </div>
 
-            <span class="post-details__author-meta">
-              <strong>{{ post.author.name }}</strong>
-              <span>@{{ post.author.username }}</span>
-            </span>
-          </RouterLink>
+      <!-- Modal card -->
+      <article v-else-if="post" class="pm-card">
 
-          <div class="post-details__header-copy">
-            <time :datetime="post.createdAt">{{ publishedLabel }}</time>
-          </div>
-        </header>
-
-        <section v-if="post.caption" class="post-details__caption-block">
-          <span class="post-details__eyebrow">Legenda</span>
-          <p>{{ post.caption }}</p>
-        </section>
-
-        <section class="post-details__stats">
-          <div>
-            <strong>{{ likesLabel }}</strong>
-            <span>interações com a publicação</span>
-          </div>
-
-          <div>
-            <strong>{{ commentsLabel }}</strong>
-            <span>comentários acumulados neste post</span>
-          </div>
-        </section>
-
-        <div class="post-details__actions">
-          <button
-            v-if="!isOwner"
-            class="post-details__action"
-            :class="{ 'is-active': post.likedByMe }"
-            type="button"
-            :disabled="likePending"
-            @click="handleToggleLike"
-          >
-            {{ post.likedByMe ? 'Descurtir' : 'Curtir post' }}
-          </button>
-
-          <button
-            class="post-details__action"
-            :class="{ 'is-active': post.savedByMe }"
-            type="button"
-            :disabled="savePending"
-            @click="handleToggleSave"
-          >
-            {{ post.savedByMe ? 'Remover dos salvos' : 'Salvar post' }}
-          </button>
-
-          <RouterLink class="btn btn-outline-secondary" :to="{ name: 'feed' }">
-            Voltar para o feed
-          </RouterLink>
-
-          <button
-            v-if="isOwner"
-            class="btn btn-outline-danger"
-            type="button"
-            :disabled="deletePending"
-            @click="handleDeletePost"
-          >
-            {{ deletePending ? 'Deletando...' : 'Deletar post' }}
-          </button>
+        <!-- Left: media -->
+        <div class="pm-media">
+          <MediaDisplay
+            class="pm-media__el"
+            :src="post.imageUrl"
+            :alt="post.imageAlt"
+            :is-video="post.isVideo"
+            :autoplay="post.isVideo"
+            :muted="true"
+            :controls="true"
+            :loop="true"
+          />
         </div>
 
-        <section class="post-details__comments card border-0">
-          <div class="post-details__comments-head">
-            <div>
-              <span class="post-details__eyebrow">Comentários</span>
-              <h3>Conversa do post</h3>
+        <!-- Right: side panel -->
+        <div class="pm-side">
+
+          <!-- Header -->
+          <header class="pm-head">
+            <RouterLink :to="authorLink" class="pm-head__author" @click="close">
+              <ProfileAvatar
+                :name="post.author.name"
+                :username="post.author.username"
+                :avatar-url="post.author.avatarUrl"
+                :colors="post.author.colors"
+                size="sm"
+              />
+              <span class="pm-head__username">{{ post.author.username }}</span>
+            </RouterLink>
+
+            <div class="pm-head__end">
+              <!-- Owner menu -->
+              <div v-if="isOwner" class="pm-owner-wrap">
+                <button
+                  class="pm-icon-btn"
+                  type="button"
+                  aria-label="Mais opções"
+                  @click="showOwnerMenu = !showOwnerMenu"
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>
+                  </svg>
+                </button>
+                <div v-if="showOwnerMenu" class="pm-owner-menu">
+                  <button
+                    class="pm-owner-menu__item pm-owner-menu__item--danger"
+                    type="button"
+                    :disabled="deletePending"
+                    @click="handleDeletePost"
+                  >
+                    {{ deletePending ? 'Deletando...' : 'Deletar post' }}
+                  </button>
+                  <button
+                    class="pm-owner-menu__item"
+                    type="button"
+                    @click="showOwnerMenu = false"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <!-- Body: caption + comments -->
+          <div class="pm-body">
+            <!-- Caption as pinned comment -->
+            <div v-if="post.caption" class="pm-comment">
+              <ProfileAvatar
+                :name="post.author.name"
+                :username="post.author.username"
+                :avatar-url="post.author.avatarUrl"
+                :colors="post.author.colors"
+                size="sm"
+              />
+              <div class="pm-comment__content">
+                <p class="pm-comment__text">
+                  <RouterLink :to="authorLink" class="pm-comment__name" @click="close">{{ post.author.username }}</RouterLink>
+                  {{ post.caption }}
+                </p>
+              </div>
             </div>
 
-            <span class="post-details__comments-meta">{{ commentsLabel }}</span>
+            <!-- Comments -->
+            <div
+              v-for="comment in comments"
+              :key="comment.id"
+              class="pm-comment"
+            >
+              <RouterLink
+                :to="{ name: 'perfil', query: { user: comment.author.username } }"
+                class="pm-comment__avatar-link"
+                @click="close"
+              >
+                <ProfileAvatar
+                  :name="comment.author.name"
+                  :username="comment.author.username"
+                  :avatar-url="comment.author.avatarUrl"
+                  :colors="comment.author.colors"
+                  size="sm"
+                />
+              </RouterLink>
+              <div class="pm-comment__content">
+                <p class="pm-comment__text">
+                  <RouterLink
+                    :to="{ name: 'perfil', query: { user: comment.author.username } }"
+                    class="pm-comment__name"
+                    @click="close"
+                  >{{ comment.author.username }}</RouterLink>
+                  {{ comment.body }}
+                </p>
+                <div class="pm-comment__meta">
+                  <span>{{ formatCommentDate(comment.createdAt) }}</span>
+                  <button
+                    v-if="currentUser?.id === comment.authorId"
+                    class="pm-comment__delete"
+                    type="button"
+                    @click="handleDeleteComment(comment)"
+                  >
+                    Apagar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Load more comments -->
+            <button
+              v-if="commentsHasMore"
+              class="pm-load-more"
+              type="button"
+              :disabled="commentsLoading"
+              @click="loadComments({ reset: false })"
+            >
+              {{ commentsLoading ? 'Carregando...' : 'Ver mais comentários' }}
+            </button>
+
+            <p v-if="!comments.length && !commentsLoading" class="pm-no-comments">
+              Seja o primeiro a comentar.
+            </p>
           </div>
 
-          <ul v-if="comments.length > 0" class="post-details__comment-list">
-            <li v-for="comment in comments" :key="comment.id">
-              <div class="post-details__comment-meta">
-                <strong>{{ comment.author.name }}</strong>
-                <span>@{{ comment.author.username }}</span>
-              </div>
-
-              <p>{{ comment.body }}</p>
-
-              <div class="post-details__comment-footer">
-                <time :datetime="comment.createdAt">{{ formatDate(comment.createdAt) }}</time>
+          <!-- Actions -->
+          <div class="pm-actions">
+            <div class="pm-actions__row">
+              <div class="pm-actions__group">
                 <button
-                  v-if="currentUser?.id === comment.authorId"
+                  v-if="!isOwner"
+                  class="pm-icon-btn"
+                  :class="{ 'pm-icon-btn--liked': post.likedByMe }"
                   type="button"
-                  class="post-details__comment-delete"
-                  @click="handleDeleteComment(comment)"
+                  :disabled="likePending"
+                  :aria-label="post.likedByMe ? 'Remover curtida' : 'Curtir'"
+                  @click="handleToggleLike"
                 >
-                  Apagar
+                  <AppIcon name="heart" />
+                </button>
+
+                <button class="pm-icon-btn" type="button" aria-label="Comentar" @click="$el.closest('.pm-side').querySelector('.pm-comment-input').focus()">
+                  <AppIcon name="comment" />
+                </button>
+
+                <button class="pm-icon-btn" type="button" aria-label="Compartilhar">
+                  <AppIcon name="share" />
                 </button>
               </div>
-            </li>
-          </ul>
 
-          <p v-else class="post-details__empty-comments">
-            Ainda não há comentários. Comece a conversa neste post.
-          </p>
+              <button
+                class="pm-icon-btn"
+                :class="{ 'pm-icon-btn--saved': post.savedByMe }"
+                type="button"
+                :disabled="savePending"
+                :aria-label="post.savedByMe ? 'Remover dos salvos' : 'Salvar'"
+                @click="handleToggleSave"
+              >
+                <AppIcon name="save" />
+              </button>
+            </div>
 
-          <button
-            v-if="commentsHasMore"
-            class="post-details__load-more"
-            type="button"
-            :disabled="commentsLoading"
-            @click="loadComments({ reset: false })"
-          >
-            {{ commentsLoading ? 'Carregando...' : 'Carregar mais comentários' }}
-          </button>
+            <p class="pm-likes">{{ likesLabel }}</p>
+            <time class="pm-date" :datetime="post.createdAt">{{ publishedLabel }}</time>
+          </div>
 
-          <form class="post-details__comment-form" @submit.prevent="handleCommentSubmit">
-            <textarea
+          <!-- Add comment -->
+          <form class="pm-comment-form" @submit.prevent="handleCommentSubmit">
+            <input
               v-model="commentText"
-              class="post-details__comment-input"
+              class="pm-comment-input"
+              type="text"
               maxlength="2200"
-              rows="3"
-              placeholder="Adicione um comentário"
+              placeholder="Adicione um comentário..."
             />
             <button
-              class="post-details__submit"
+              class="pm-comment-submit"
+              :class="{ 'pm-comment-submit--active': trimmedComment }"
               type="submit"
               :disabled="!trimmedComment || isSubmittingComment"
             >
-              {{ isSubmittingComment ? 'Enviando...' : 'Enviar comentário' }}
+              {{ isSubmittingComment ? '...' : 'Publicar' }}
             </button>
           </form>
-        </section>
-      </div>
-    </article>
-  </section>
+        </div>
+      </article>
 
-  <section v-else class="post-details__missing card border-0">
-    <h2>Post não encontrado</h2>
-    <p>
-      {{ loadError || 'Esse post não existe mais ou foi removido.' }}
-      Volte para o feed para continuar navegando.
-    </p>
-    <RouterLink class="btn btn-primary align-self-start" :to="{ name: 'feed' }">
-      Ir para o feed
-    </RouterLink>
-  </section>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
-.post-details {
-  display: grid;
-  gap: 1rem;
-}
-
-.post-details__card,
-.post-details__comments,
-.post-details__missing {
-  overflow: hidden;
-  border-radius: 1.75rem;
-  background: var(--app-surface);
-}
-
-.post-details__card {
-  display: grid;
-}
-
-.post-details__media-panel {
-  position: relative;
-  min-height: 18rem;
-  background:
-    linear-gradient(135deg, rgba(0, 149, 246, 0.14) 0%, rgba(0, 0, 0, 0) 48%),
-    var(--app-surface-soft);
-}
-
-.post-details__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  aspect-ratio: 1 / 1;
-  background: #000;
-}
-
-.post-details__content {
-  display: grid;
-  gap: 1.1rem;
-  padding: 1.25rem;
-}
-
-.post-details__header,
-.post-details__author,
-.post-details__comment-meta,
-.post-details__comment-footer {
+/* ── Overlay ── */
+.pm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.85);
   display: flex;
-  align-items: center;
-}
-
-.post-details__header {
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.post-details__author {
-  gap: 0.85rem;
-  min-width: 0;
-  color: inherit;
-  text-decoration: none;
-}
-
-.post-details__author-meta,
-.post-details__header-copy,
-.post-details__stats div,
-.post-details__comments-head div,
-.post-details__comment-list li {
-  display: grid;
-}
-
-.post-details__author-meta strong,
-.post-details__comment-meta strong {
-  color: var(--app-text);
-}
-
-.post-details__author-meta span,
-.post-details__header-copy,
-.post-details__comments-meta,
-.post-details__comment-meta span,
-.post-details__comment-list time,
-.post-details__feedback,
-.post-details__empty-comments,
-.post-details__stats span,
-.post-details__missing p {
-  color: var(--app-muted);
-}
-
-.post-details__header-copy {
-  justify-items: end;
-  gap: 0.2rem;
-  font-size: 0.94rem;
-  text-align: right;
-}
-
-.post-details__eyebrow {
-  display: inline-block;
-  color: var(--app-accent-strong);
-  font-size: 0.76rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.post-details__caption-block {
-  display: grid;
-  gap: 0.45rem;
-}
-
-.post-details__caption-block p,
-.post-details__comment-list p,
-.post-details__missing h2 {
-  margin: 0;
-}
-
-.post-details__caption-block p,
-.post-details__empty-comments,
-.post-details__missing p {
-  line-height: 1.7;
-}
-
-.post-details__stats {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.post-details__stats div {
-  gap: 0.22rem;
-  padding: 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1.15rem;
-  background: var(--app-surface-soft);
-}
-
-.post-details__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.post-details__action,
-.post-details__submit,
-.post-details__load-more {
-  border: 0;
-  border-radius: 999px;
-  font-weight: 800;
-  transition:
-    transform 180ms ease,
-    background-color 180ms ease,
-    color 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.post-details__action {
-  padding: 0.75rem 1.1rem;
-  color: var(--app-text);
-  background: var(--app-accent-soft);
-}
-
-.post-details__action.is-active,
-.post-details__action:hover:not(:disabled),
-.post-details__action:focus-visible,
-.post-details__submit:hover:not(:disabled),
-.post-details__submit:focus-visible,
-.post-details__load-more:hover:not(:disabled),
-.post-details__load-more:focus-visible {
-  color: #fff;
-  background: var(--app-link);
-  box-shadow: none;
-  transform: translateY(-1px);
-}
-
-.post-details__comments {
-  display: grid;
-  gap: 1rem;
-  padding: 1.1rem;
-  border: 1px solid var(--app-border);
-  background: var(--app-surface);
-}
-
-.post-details__comments-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.post-details__comments-head h3,
-.post-details__missing h2 {
-  margin: 0.2rem 0 0;
-  font-size: clamp(1.3rem, 3vw, 1.7rem);
-  font-weight: 800;
-}
-
-.post-details__load-more {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
-  width: 100%;
-  padding: 0.85rem 1rem;
-  color: var(--app-text);
-  background: var(--app-surface-soft);
+  padding: 1.5rem;
 }
 
-.post-details__comment-list {
+.pm-close {
+  position: fixed;
+  top: 1rem;
+  right: 1.25rem;
+  z-index: 101;
   display: grid;
-  gap: 0.85rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.post-details__comment-list li {
-  gap: 0.55rem;
-  padding: 1rem;
-  border-radius: 1.1rem;
-  background: var(--app-surface-soft);
-}
-
-.post-details__comment-meta {
-  gap: 0.45rem;
-  flex-wrap: wrap;
-}
-
-.post-details__comment-footer {
-  justify-content: space-between;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  font-size: 0.9rem;
-}
-
-.post-details__comment-delete {
-  border: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: #fff;
   background: none;
-  color: var(--app-link);
-  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 150ms ease;
+}
+
+.pm-close:hover {
+  opacity: 1;
+}
+
+/* ── States ── */
+.pm-loading,
+.pm-error {
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1rem;
+}
+
+.pm-error button {
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--app-accent);
+  color: #fff;
+  border: 0;
   cursor: pointer;
 }
 
-.post-details__comment-delete:hover {
+/* ── Card ── */
+.pm-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+  width: min(1100px, 100%);
+  max-height: calc(100vh - 3rem);
+  background: var(--app-surface);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* ── Media ── */
+.pm-media {
+  position: relative;
+  background: #000;
+  display: grid;
+  place-items: center;
+  min-height: 520px;
+  overflow: hidden;
+}
+
+.pm-media__el {
+  width: 100%;
+  height: 100%;
+  max-height: calc(100vh - 3rem);
+}
+
+/* ── Side panel ── */
+.pm-side {
+  display: flex;
+  flex-direction: column;
+  background: var(--app-surface);
+  border-left: 1px solid var(--app-border);
+  min-width: 0;
+  max-height: calc(100vh - 3rem);
+}
+
+/* ── Header ── */
+.pm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--app-border);
+  flex-shrink: 0;
+}
+
+.pm-head__author {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  min-width: 0;
+}
+
+.pm-head__username {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.pm-head__end {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* ── Owner menu ── */
+.pm-owner-wrap {
+  position: relative;
+}
+
+.pm-owner-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 10;
+  min-width: 180px;
+  background: var(--app-surface-strong);
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.pm-owner-menu__item {
+  display: block;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  text-align: left;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--app-text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.pm-owner-menu__item:hover {
+  background: var(--app-surface-soft);
+}
+
+.pm-owner-menu__item--danger {
+  color: #ff5c5c;
+  font-weight: 700;
+}
+
+/* ── Body (scrollable) ── */
+.pm-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pm-body::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pm-body::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: 2px;
+}
+
+/* ── Comments ── */
+.pm-comment {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.pm-comment__avatar-link {
+  flex-shrink: 0;
+}
+
+.pm-comment__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.pm-comment__text {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--app-text);
+  word-break: break-word;
+}
+
+.pm-comment__name {
+  font-weight: 700;
+  color: var(--app-text);
+  text-decoration: none;
+  margin-right: 0.35rem;
+}
+
+.pm-comment__name:hover {
   text-decoration: underline;
 }
 
-.post-details__comment-form {
-  display: grid;
-  gap: 0.75rem;
+.pm-comment__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--app-muted);
 }
 
-.post-details__comment-input {
-  width: 100%;
-  min-height: 7rem;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--app-border-strong);
-  border-radius: 1.15rem;
-  color: var(--app-text);
-  resize: vertical;
-  background: var(--app-surface-soft);
-}
-
-.post-details__comment-input:focus-visible {
-  outline: 2px solid rgba(0, 149, 246, 0.2);
-  border-color: rgba(0, 149, 246, 0.45);
-}
-
-.post-details__submit {
-  justify-self: start;
-  min-width: 13rem;
-  padding: 0.85rem 1rem;
-  color: #fff;
-  background: var(--app-link);
-}
-
-.post-details__submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-  transform: none;
-  box-shadow: none;
-}
-
-.post-details__feedback {
-  margin: 0;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1rem;
+.pm-comment__delete {
+  background: none;
+  border: 0;
+  color: var(--app-muted);
+  font-size: 0.75rem;
   font-weight: 600;
-  background: var(--app-surface-soft);
+  cursor: pointer;
+  padding: 0;
 }
 
-.post-details__missing {
+.pm-comment__delete:hover {
+  color: var(--app-danger);
+}
+
+.pm-no-comments {
+  margin: 0;
+  color: var(--app-muted);
+  font-size: 0.88rem;
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.pm-load-more {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0;
+  background: none;
+  border: 0;
+  color: var(--app-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.pm-load-more:hover {
+  color: var(--app-text);
+}
+
+/* ── Actions ── */
+.pm-actions {
+  padding: 0.5rem 1rem 0.25rem;
+  border-top: 1px solid var(--app-border);
+  flex-shrink: 0;
+}
+
+.pm-actions__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.pm-actions__group {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.pm-icon-btn {
   display: grid;
-  gap: 0.9rem;
-  padding: 1.4rem;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border: 0;
+  color: var(--app-text);
+  background: none;
+  cursor: pointer;
+  transition: color 150ms ease, transform 120ms ease;
 }
 
-@media (min-width: 992px) {
-  .post-details__card {
-    grid-template-columns: minmax(0, 1.1fr) minmax(20rem, 0.9fr);
-    align-items: stretch;
-  }
-
-  .post-details__media-panel {
-    min-height: 100%;
-  }
-
-  .post-details__content {
-    padding: 1.45rem;
-  }
+.pm-icon-btn:hover {
+  color: var(--app-muted);
 }
 
-@media (max-width: 575.98px) {
-  .post-details__header,
-  .post-details__comments-head {
-    flex-direction: column;
+.pm-icon-btn--liked {
+  color: var(--app-danger);
+}
+
+.pm-icon-btn--liked:hover {
+  color: var(--app-danger);
+}
+
+.pm-icon-btn--saved {
+  color: #ffd60a;
+}
+
+.pm-icon-btn--saved:hover {
+  color: #ffd60a;
+}
+
+.pm-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pm-likes {
+  margin: 0.1rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.pm-date {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--app-muted);
+  padding-bottom: 0.5rem;
+}
+
+/* ── Comment form ── */
+.pm-comment-form {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--app-border);
+  flex-shrink: 0;
+}
+
+.pm-comment-input {
+  flex: 1;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: var(--app-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  padding: 0.5rem 0;
+}
+
+.pm-comment-input::placeholder {
+  color: var(--app-muted);
+}
+
+.pm-comment-submit {
+  background: none;
+  border: 0;
+  color: var(--app-accent);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.4;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.pm-comment-submit--active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ── Mobile ── */
+@media (max-width: 880px) {
+  .pm-card {
+    grid-template-columns: 1fr;
+    max-height: 95vh;
+    border-radius: 0.75rem;
   }
 
-  .post-details__header-copy {
-    justify-items: start;
-    text-align: left;
+  .pm-media {
+    min-height: 300px;
+    max-height: 50vh;
   }
 
-  .post-details__submit {
-    width: 100%;
-    justify-self: stretch;
+  .pm-side {
+    max-height: 45vh;
+    border-left: 0;
+    border-top: 1px solid var(--app-border);
   }
 }
 </style>
