@@ -28,7 +28,7 @@ const sizeMap = {
   sm: '2.2rem',
   md: '2.85rem',
   lg: '5.25rem',
-  xl: '8rem',
+  xl: '9rem',
 }
 
 const initials = computed(() => {
