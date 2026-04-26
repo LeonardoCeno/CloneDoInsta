@@ -52,7 +52,7 @@ export async function togglePrivacy() {
   return data
 }
 
-export async function deleteAccount() {
-  const { data } = await api.delete('/users/me')
+export async function deleteAccount(password) {
+  const { data } = await api.delete('/users/me', { data: { password } })
   return data
 }

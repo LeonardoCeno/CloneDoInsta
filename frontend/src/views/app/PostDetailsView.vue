@@ -13,6 +13,7 @@ import * as repostsService from '@/services/reposts.service'
 import { extractErrorMessage } from '@/services/api'
 import { normalizePost, useFeed } from '@/composables/useFeed'
 import { normalizeUser } from '@/stores/profileUtils'
+import { useToastStore } from '@/stores/toast'
 
 const COMMENTS_PAGE_SIZE = 20
 
@@ -20,6 +21,7 @@ const route = useRoute()
 const router = useRouter()
 const { currentUser } = useAuth()
 const { applyPostPatch } = useFeed()
+const toastStore = useToastStore()
 
 const post = ref(null)
 const loadError = ref('')
@@ -183,6 +185,7 @@ async function handleToggleRepost() {
     } else {
       await repostsService.repost(post.value.id)
       post.value = { ...post.value, repostedByMe: true, repostsCount: post.value.repostsCount + 1 }
+      toastStore.show('Publicação republicada!', 'success')
     }
     applyPostPatch(post.value.id, { repostedByMe: post.value.repostedByMe, repostsCount: post.value.repostsCount })
   } finally {

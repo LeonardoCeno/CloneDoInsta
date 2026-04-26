@@ -73,7 +73,14 @@ class ProfileController extends Controller
 
     public function destroyAccount(Request $request): JsonResponse
     {
+        $request->validate(['password' => 'required|string']);
+
         $user = $request->user();
+
+        if (!\Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Senha incorreta.'], 422);
+        }
+
         $user->tokens()->delete();
         $this->users->deleteAccount($user);
 

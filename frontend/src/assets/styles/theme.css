@@ -499,27 +499,42 @@ textarea::placeholder {
   }
 
   .ig-brand,
-  .ig-sidebar__footer,
   .ig-rail {
     display: none;
   }
 
-  .ig-nav {
-    flex-direction: row;
-    justify-content: space-around;
-    gap: 0;
+  .ig-sidebar__footer {
+    display: contents;
   }
 
-  .ig-nav__link {
-    width: 3.2rem;
-    height: 3.2rem;
+  .ig-nav {
+    display: contents;
+  }
+
+  .ig-sidebar {
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+  }
+
+  .ig-nav__link,
+  .ig-sidebar__account,
+  .ig-sidebar__more {
+    width: 3.8rem;
+    height: 3.8rem;
     border-radius: 999px;
     padding: 0;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .ig-nav__icon-wrap {
     width: auto;
+  }
+
+  .ig-nav__icon-wrap .app-icon {
+    width: 2rem;
+    height: 2rem;
   }
 
   .ig-nav__label {

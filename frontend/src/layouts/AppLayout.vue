@@ -23,6 +23,8 @@ const showMoreMenu = ref(false)
 const privacyPending = ref(false)
 const showDeleteConfirm = ref(false)
 const deletePending = ref(false)
+const deletePassword = ref('')
+const deletePasswordError = ref('')
 
 let pollInterval = null
 
@@ -135,11 +137,18 @@ async function handleLogout() {
 
 async function handleDeleteAccount() {
   if (deletePending.value) return
+  if (!deletePassword.value) {
+    deletePasswordError.value = 'Digite sua senha.'
+    return
+  }
+  deletePasswordError.value = ''
   deletePending.value = true
   try {
-    await deleteAccount()
+    await deleteAccount(deletePassword.value)
     await logout()
     router.replace({ name: 'login' })
+  } catch (e) {
+    deletePasswordError.value = e?.response?.data?.message ?? 'Senha incorreta.'
   } finally {
     deletePending.value = false
   }
@@ -254,7 +263,7 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
 
                 <hr class="mais-divider" />
 
-                <button class="mais-item mais-item--danger" type="button" @click="showDeleteConfirm = true">
+                <button class="mais-item mais-item--danger" type="button" @click="showDeleteConfirm = true; deletePassword = ''; deletePasswordError = ''">
                   <AppIcon name="trash" />
                   <span>Excluir conta</span>
                 </button>
@@ -264,6 +273,17 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
                 <p class="mais-confirm-text">
                   Tem certeza? Todos os seus posts, seguidores e dados serão excluídos permanentemente. Essa ação não pode ser desfeita.
                 </p>
+                <div class="mais-password-wrap">
+                  <input
+                    v-model="deletePassword"
+                    type="password"
+                    class="mais-password-input"
+                    placeholder="Digite sua senha para confirmar"
+                    autocomplete="current-password"
+                    @keydown.enter="handleDeleteAccount"
+                  />
+                  <p v-if="deletePasswordError" class="mais-password-error">{{ deletePasswordError }}</p>
+                </div>
                 <button
                   class="mais-item mais-item--danger"
                   type="button"
@@ -273,7 +293,7 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
                   <AppIcon name="trash" />
                   <span>{{ deletePending ? 'Excluindo...' : 'Sim, excluir minha conta' }}</span>
                 </button>
-                <button class="mais-item" type="button" @click="showDeleteConfirm = false">
+                <button class="mais-item" type="button" @click="showDeleteConfirm = false; deletePassword = ''; deletePasswordError = ''">
                   <span>Cancelar</span>
                 </button>
               </template>
@@ -414,6 +434,33 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
   color: var(--app-muted);
   line-height: 1.5;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mais-password-wrap {
+  padding: 0.75rem 1rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mais-password-input {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-surface-strong);
+  color: var(--app-text);
+  font-size: 0.88rem;
+  outline: none;
+}
+
+.mais-password-input:focus {
+  border-color: rgba(0, 149, 246, 0.55);
+  box-shadow: 0 0 0 0.2rem rgba(0, 149, 246, 0.14);
+}
+
+.mais-password-error {
+  margin: 0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--app-danger);
 }
 
 .mais-fade-enter-active,
