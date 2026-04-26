@@ -148,13 +148,14 @@ textarea::placeholder {
 
 .ig-layout {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 5.5cqi minmax(0, 1fr);
   gap: 0;
   min-height: 100vh;
+  container-type: inline-size;
 }
 
 .ig-layout.is-feed {
-  grid-template-columns: 72px minmax(0, 1fr) 280px;
+  grid-template-columns: 5.5cqi minmax(0, 1fr) 300px;
 }
 
 .ig-sidebar {
@@ -165,7 +166,7 @@ textarea::placeholder {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  width: 72px;
+  width: 5.5cqi;
   overflow: hidden;
   padding: 1.25rem 0;
   border-right: 1px solid var(--app-border);
@@ -175,7 +176,7 @@ textarea::placeholder {
 
 @media (min-width: 992px) {
   .ig-sidebar:hover {
-    width: 244px;
+    width: 17cqi;
   }
 }
 
@@ -183,7 +184,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  width: 244px;
+  width: 17cqi;
   padding: 0.7rem 0.85rem;
   margin-bottom: 0.5rem;
   border-radius: 0.85rem;
@@ -199,7 +200,7 @@ textarea::placeholder {
 }
 
 .ig-brand__glyph {
-  width: calc(72px - 1.7rem);
+  width: calc(5.5cqi - 1.7rem);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,8 +241,13 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: calc(72px - 1.7rem);
+  width: calc(5.5cqi - 1.7rem);
   flex-shrink: 0;
+}
+
+.ig-nav__icon-wrap .app-icon {
+  width: 2.2cqi;
+  height: 2.2cqi;
 }
 
 .ig-nav__badge {
@@ -267,7 +273,7 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  width: 244px;
+  width: 17cqi;
   height: 3rem;
   padding: 0 0.85rem;
   border: 0;

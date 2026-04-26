@@ -333,9 +333,9 @@ watch(
     <template v-if="!isPrivateAndHidden && activeTab === 'posts'">
       <section v-if="postsList.length > 0" class="profile-grid">
         <RouterLink
-          v-for="post in postsList"
+          v-for="(post, idx) in postsList"
           :key="post.id"
-          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+          :to="{ name: 'post-detalhes', params: { postId: post.id }, query: { ids: postsList.map(p => p.id).join(','), idx } }"
           class="profile-grid__item"
         >
           <MediaDisplay :src="post.imageUrl" :alt="post.imageAlt" :is-video="post.isVideo" :thumbnail="true" />
@@ -371,9 +371,9 @@ watch(
 
       <section v-else-if="repostsList.length > 0" class="profile-grid">
         <RouterLink
-          v-for="post in repostsList"
+          v-for="(post, idx) in repostsList"
           :key="post.id"
-          :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+          :to="{ name: 'post-detalhes', params: { postId: post.id }, query: { ids: repostsList.map(p => p.id).join(','), idx } }"
           class="profile-grid__item"
         >
           <MediaDisplay :src="post.imageUrl" :alt="post.imageAlt" :is-video="post.isVideo" :thumbnail="true" />

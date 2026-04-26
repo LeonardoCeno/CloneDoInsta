@@ -89,8 +89,10 @@ function toggleFollow(actorUsername) {
 }
 
 onMounted(async () => {
-  await store.fetchList({ reset: true })
-  if (store.unreadCount > 0) await store.markAllRead()
+  await Promise.all([
+    store.fetchList({ reset: true }),
+    store.markAllRead(),
+  ])
 })
 </script>
 

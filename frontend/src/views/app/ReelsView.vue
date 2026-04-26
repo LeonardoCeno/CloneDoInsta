@@ -473,7 +473,7 @@ onUnmounted(() => {
 .reel-item__media {
   position: relative;
   flex: none;
-  width: min(calc(100cqi - 80px), 500px);
+  width: min(calc(89cqi - 1rem), 500px);
   height: 100%;
   border-radius: 0.75rem;
   overflow: hidden;
@@ -561,12 +561,12 @@ onUnmounted(() => {
 .reel-item__sidebar {
   flex: none;
   align-self: stretch;
-  width: 64px;
+  width: 11cqi;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.7rem;
 }
 
 .reel-item__action {
@@ -579,20 +579,21 @@ onUnmounted(() => {
 .reel-item__action-btn {
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 7cqi;
+  height: 7cqi;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: none;
   color: var(--app-text);
   text-decoration: none;
   cursor: pointer;
-  transition: background 150ms ease, color 150ms ease;
+  transition: color 150ms ease;
 }
 
 .reel-item__action-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: none;
+  opacity: 0.8;
 }
 
 .reel-item__action-btn.is-liked {

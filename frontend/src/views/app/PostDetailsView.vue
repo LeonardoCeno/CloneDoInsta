@@ -9,6 +9,7 @@ import * as postsService from '@/services/posts.service'
 import * as likesService from '@/services/likes.service'
 import * as savesService from '@/services/saves.service'
 import * as commentsService from '@/services/comments.service'
+import * as repostsService from '@/services/reposts.service'
 import { extractErrorMessage } from '@/services/api'
 import { normalizePost, useFeed } from '@/composables/useFeed'
 import { normalizeUser } from '@/stores/profileUtils'
@@ -33,6 +34,7 @@ const commentText = ref('')
 const isSubmittingComment = ref(false)
 const likePending = ref(false)
 const savePending = ref(false)
+const repostPending = ref(false)
 const deletePending = ref(false)
 const showOwnerMenu = ref(false)
 
@@ -41,6 +43,30 @@ const postId = computed(() =>
     ? route.params.postId.trim()
     : String(route.params.postId ?? ''),
 )
+
+const navIds = computed(() => {
+  const raw = route.query.ids
+  if (!raw || typeof raw !== 'string') return []
+  return raw.split(',').filter(Boolean)
+})
+
+const navIdx = computed(() => {
+  const n = Number(route.query.idx)
+  return isNaN(n) ? -1 : n
+})
+
+const hasPrev = computed(() => navIds.value.length > 0 && navIdx.value > 0)
+const hasNext = computed(() => navIds.value.length > 0 && navIdx.value < navIds.value.length - 1)
+
+function goToNav(idx) {
+  const id = navIds.value[idx]
+  if (!id) return
+  router.replace({
+    name: 'post-detalhes',
+    params: { postId: id },
+    query: { ids: route.query.ids, idx },
+  })
+}
 
 const isOwner = computed(
   () => Boolean(currentUser.value?.id && post.value?.author.id === currentUser.value.id),
@@ -147,6 +173,23 @@ async function handleToggleLike() {
   }
 }
 
+async function handleToggleRepost() {
+  if (!post.value || repostPending.value) return
+  repostPending.value = true
+  try {
+    if (post.value.repostedByMe) {
+      await repostsService.unrepost(post.value.id)
+      post.value = { ...post.value, repostedByMe: false, repostsCount: Math.max(0, post.value.repostsCount - 1) }
+    } else {
+      await repostsService.repost(post.value.id)
+      post.value = { ...post.value, repostedByMe: true, repostsCount: post.value.repostsCount + 1 }
+    }
+    applyPostPatch(post.value.id, { repostedByMe: post.value.repostedByMe, repostsCount: post.value.repostsCount })
+  } finally {
+    repostPending.value = false
+  }
+}
+
 async function handleToggleSave() {
   if (!post.value || savePending.value) return
   savePending.value = true
@@ -245,6 +288,19 @@ watch(
         <p>{{ loadError }}</p>
         <button type="button" @click="close">Fechar</button>
       </div>
+
+      <!-- Prev arrow -->
+      <button
+        v-if="hasPrev"
+        class="pm-nav pm-nav--prev"
+        type="button"
+        aria-label="Post anterior"
+        @click="goToNav(navIdx - 1)"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
 
       <!-- Modal card -->
       <article v-else-if="post" class="pm-card">
@@ -414,7 +470,15 @@ watch(
                   <AppIcon name="share" />
                 </button>
 
-                <button class="pm-icon-btn" type="button" aria-label="Republicar">
+                <button
+                  v-if="!isOwner"
+                  class="pm-icon-btn"
+                  :class="{ 'pm-icon-btn--reposted': post.repostedByMe }"
+                  type="button"
+                  :disabled="repostPending"
+                  :aria-label="post.repostedByMe ? 'Remover republicação' : 'Republicar'"
+                  @click="handleToggleRepost"
+                >
                   <AppIcon name="repost" />
                 </button>
               </div>
@@ -456,6 +520,19 @@ watch(
         </div>
       </article>
 
+      <!-- Next arrow -->
+      <button
+        v-if="hasNext"
+        class="pm-nav pm-nav--next"
+        type="button"
+        aria-label="Próximo post"
+        @click="goToNav(navIdx + 1)"
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+
     </div>
   </Teleport>
 </template>
@@ -473,6 +550,30 @@ watch(
   padding: 1.5rem;
   container-type: inline-size;
 }
+
+.pm-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 102;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.pm-nav:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.pm-nav--prev { left: 1rem; }
+.pm-nav--next { right: 1rem; }
 
 .pm-close {
   position: fixed;
@@ -777,6 +878,14 @@ watch(
 
 .pm-icon-btn--saved:hover {
   color: #ffd60a;
+}
+
+.pm-icon-btn--reposted {
+  color: #3cc663;
+}
+
+.pm-icon-btn--reposted:hover {
+  color: #3cc663;
 }
 
 .pm-icon-btn:disabled {
