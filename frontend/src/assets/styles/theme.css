@@ -142,66 +142,91 @@ textarea::placeholder {
 
 .ig-layout {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 2rem;
-  width: min(1280px, 100%);
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 0;
   min-height: 100vh;
-  margin: 0 auto;
-  padding: 0 1.5rem 2rem;
 }
 
 .ig-layout.is-feed {
-  grid-template-columns: 88px minmax(0, 1fr) 320px;
+  grid-template-columns: 72px minmax(0, 1fr) 340px;
 }
 
 .ig-sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  z-index: 50;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2rem;
   height: 100vh;
-  padding: 1.75rem 0;
+  width: 72px;
+  overflow: hidden;
+  padding: 1.25rem 0;
   border-right: 1px solid var(--app-border);
+  background: var(--app-bg);
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 992px) {
+  .ig-sidebar:hover {
+    width: 244px;
+  }
 }
 
 .ig-brand {
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 244px;
+  padding: 0.7rem 0.85rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.85rem;
   color: var(--app-text);
   text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 180ms ease;
+}
+
+.ig-brand:hover {
+  background: var(--app-surface-soft);
 }
 
 .ig-brand__glyph {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
+  width: calc(72px - 1.7rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.ig-brand__wordmark,
+.ig-brand__wordmark {
+  font-family: 'Grand Hotel', cursive;
+  font-size: 1.55rem;
+  letter-spacing: 0.01em;
+  color: var(--app-text);
+  line-height: 1;
+}
+
 .ig-nav__label {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--app-text);
   white-space: nowrap;
-  border: 0;
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.ig-sidebar:hover .ig-nav__label {
+  opacity: 1;
 }
 
 .ig-nav {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.1rem;
   width: 100%;
-  align-items: center;
 }
 
 .ig-nav__icon-wrap {
@@ -209,6 +234,8 @@ textarea::placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: calc(72px - 1.7rem);
+  flex-shrink: 0;
 }
 
 .ig-nav__badge {
@@ -231,19 +258,19 @@ textarea::placeholder {
 .ig-nav__link,
 .ig-sidebar__account,
 .ig-sidebar__more {
-  display: grid;
-  place-items: center;
-  width: 3.35rem;
-  height: 3.35rem;
-  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  width: 244px;
+  height: 3rem;
+  padding: 0 0.85rem;
   border: 0;
-  border-radius: 1rem;
+  border-radius: 0.85rem;
   color: var(--app-text);
   background: transparent;
   text-decoration: none;
-  transition:
-    background-color 180ms ease,
-    transform 180ms ease;
+  white-space: nowrap;
+  transition: background 180ms ease;
 }
 
 .ig-nav__link:hover,
@@ -257,24 +284,28 @@ textarea::placeholder {
 
 .ig-nav__link.is-active {
   background: var(--app-surface-soft);
-  transform: translateY(-1px);
+}
+
+.ig-nav__link.is-active .ig-nav__label {
+  font-weight: 700;
 }
 
 .ig-sidebar__footer {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.1rem;
   width: 100%;
-  align-items: center;
 }
 
 .ig-content {
+  grid-column: 2;
   min-width: 0;
-  padding-top: 1.5rem;
+  padding: 1.5rem 1.5rem 2rem;
 }
 
 .ig-main {
   min-width: 0;
+  margin: 0 auto;
 }
 
 .ig-main--feed {
@@ -301,7 +332,8 @@ textarea::placeholder {
   align-self: start;
   display: grid;
   gap: 1.6rem;
-  padding-top: 2rem;
+  padding: 2rem 1.5rem 2rem 1rem;
+  min-width: 0;
 }
 
 .ig-rail__account,
@@ -404,108 +436,6 @@ textarea::placeholder {
   flex-direction: column;
 }
 
-/* ── Large sidebar: icon + label ──────────────────────────────────────── */
-@media (min-width: 1264px) {
-  .ig-layout {
-    grid-template-columns: 244px minmax(0, 1fr);
-    gap: 0;
-  }
-
-  .ig-layout.is-feed {
-    grid-template-columns: 244px minmax(0, 1fr) 340px;
-  }
-
-  .ig-sidebar {
-    align-items: flex-start;
-    width: 244px;
-    padding: 1.5rem 0.75rem;
-    gap: 0.25rem;
-  }
-
-  .ig-brand {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-    width: 100%;
-    height: auto;
-    padding: 0.7rem 0.85rem;
-    border-radius: 0.85rem;
-  }
-
-  .ig-brand__wordmark {
-    position: static;
-    width: auto;
-    height: auto;
-    clip: auto;
-    overflow: visible;
-    white-space: normal;
-    border: 0;
-    margin: 0;
-    padding: 0;
-    font-family: 'Grand Hotel', cursive;
-    font-size: 1.6rem;
-    letter-spacing: 0.01em;
-    color: var(--app-text);
-    line-height: 1;
-  }
-
-  .ig-nav {
-    align-items: stretch;
-    gap: 0.1rem;
-    width: 100%;
-  }
-
-  .ig-nav__label {
-    position: static;
-    width: auto;
-    height: auto;
-    clip: auto;
-    overflow: visible;
-    white-space: normal;
-    border: 0;
-    margin: 0;
-    padding: 0;
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--app-text);
-  }
-
-  .ig-nav__link,
-  .ig-sidebar__account,
-  .ig-sidebar__more {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 1.1rem;
-    width: 100%;
-    height: 3rem;
-    padding: 0 0.85rem;
-    border-radius: 0.85rem;
-  }
-
-  .ig-nav__link.is-active {
-    transform: none;
-  }
-
-  .ig-nav__link.is-active .ig-nav__label {
-    font-weight: 700;
-  }
-
-  .ig-sidebar__footer {
-    align-items: stretch;
-    gap: 0.1rem;
-    width: 100%;
-  }
-
-  .ig-content {
-    padding-left: 2rem;
-  }
-
-  .ig-rail {
-    padding-top: 1.75rem;
-    padding-left: 1rem;
-  }
-}
 
 @media (max-width: 991.98px) {
   .ig-layout,
@@ -517,18 +447,24 @@ textarea::placeholder {
   }
 
   .ig-sidebar {
-    position: fixed;
+    top: auto;
     right: 0;
     bottom: 0;
     left: 0;
     z-index: 40;
-    display: block;
+    width: 100%;
     height: auto;
+    overflow: visible;
     padding: 0.35rem 0 calc(0.35rem + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--app-border);
     border-right: 0;
     background: rgba(0, 0, 0, 0.96);
     backdrop-filter: blur(10px);
+    transition: none;
+  }
+
+  .ig-sidebar:hover {
+    width: 100%;
   }
 
   .ig-brand,
@@ -547,10 +483,20 @@ textarea::placeholder {
     width: 3.2rem;
     height: 3.2rem;
     border-radius: 999px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .ig-nav__icon-wrap {
+    width: auto;
+  }
+
+  .ig-nav__label {
+    display: none;
   }
 
   .ig-content {
-    padding-top: 1rem;
+    padding: 1rem 0 0;
   }
 
   .ig-main,

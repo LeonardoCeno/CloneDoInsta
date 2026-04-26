@@ -60,9 +60,9 @@ async function handleToggleSave(postId) {
 
   try {
     await toggleSave(post)
-    feedbackMessage.value = post.savedByMe ? 'Post removido dos salvos.' : 'Post salvo.'
+    toastStore.show(post.savedByMe ? 'Post removido dos salvos.' : 'Post salvo.', 'info')
   } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível salvar o post.')
+    toastStore.show(extractErrorMessage(error, 'Não foi possível salvar o post.'), 'error')
   }
 }
 

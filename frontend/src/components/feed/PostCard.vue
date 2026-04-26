@@ -345,7 +345,7 @@ function handleCommentSubmit() {
 }
 
 .feed-post__icon-button.is-saved {
-  color: var(--app-text);
+  color: #ffd60a;
 }
 
 .feed-post__icon-button.is-reposted {

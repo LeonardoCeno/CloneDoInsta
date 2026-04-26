@@ -16,7 +16,6 @@ const form = reactive({ caption: '' })
 const fileInput = ref(null)
 const selectedFile = ref(null)
 const previewUrl = ref('')
-const selectedFileName = ref('')
 const isVideo = ref(false)
 const isSubmitting = ref(false)
 const errorMessage = ref('')
@@ -28,22 +27,9 @@ const { createPost } = useFeed()
 const trimmedCaption = computed(() => form.caption.trim())
 const captionLength = computed(() => form.caption.length)
 const hasSelectedFile = computed(() => Boolean(selectedFile.value))
-const uploadStateLabel = computed(() =>
-  hasSelectedFile.value
-    ? `${isVideo.value ? 'Vídeo' : 'Imagem'} pronto para publicação.`
-    : 'Aceita JPG, PNG, WEBP ou MP4 (vídeo até 100 MB).',
-)
-const publishButtonLabel = computed(() => (isSubmitting.value ? 'Publicando...' : 'Publicar post'))
+const publishButtonLabel = computed(() => (isSubmitting.value ? 'Publicando...' : 'Publicar'))
 const canPublish = computed(
   () => Boolean(hasSelectedFile.value && trimmedCaption.value) && !isSubmitting.value,
-)
-const previewAlt = computed(() =>
-  trimmedCaption.value
-    ? `Preview do post com a legenda: ${trimmedCaption.value}`
-    : 'Preview da mídia selecionada para o post',
-)
-const previewCaption = computed(
-  () => trimmedCaption.value || 'Sua legenda aparece aqui assim que você começar a escrever.',
 )
 
 function revokePreview() {
@@ -56,19 +42,10 @@ function clearFeedback() {
   publishedPost.value = null
 }
 
-function handleDraftInput() {
-  if (successMessage.value || publishedPost.value) {
-    successMessage.value = ''
-    publishedPost.value = null
-  }
-  if (errorMessage.value) errorMessage.value = ''
-}
-
 function clearSelectedFile() {
   revokePreview()
   selectedFile.value = null
   previewUrl.value = ''
-  selectedFileName.value = ''
   isVideo.value = false
   if (fileInput.value) fileInput.value.value = ''
 }
@@ -81,7 +58,7 @@ function handleFileChange(event) {
 
   if (!ACCEPTED_TYPES.includes(file.type)) {
     clearSelectedFile()
-    errorMessage.value = 'Use JPG, PNG, WEBP, GIF ou MP4.'
+    errorMessage.value = 'Formato não suportado. Use JPG, PNG, WEBP, GIF ou MP4.'
     return
   }
 
@@ -89,28 +66,31 @@ function handleFileChange(event) {
   if (file.size > maxBytes) {
     clearSelectedFile()
     errorMessage.value = file.type === 'video/mp4'
-      ? 'Vídeo deve ter no máximo 100 MB.'
-      : 'Imagem deve ter no máximo 10 MB.'
+      ? 'Vídeo muito grande. Limite: 100 MB.'
+      : 'Imagem muito grande. Limite: 10 MB.'
     return
   }
 
   revokePreview()
   selectedFile.value = file
-  selectedFileName.value = file.name
   isVideo.value = file.type === 'video/mp4'
   previewUrl.value = URL.createObjectURL(file)
+}
+
+function openFilePicker() {
+  if (!hasSelectedFile.value) fileInput.value?.click()
 }
 
 async function handleSubmit() {
   clearFeedback()
 
   if (!selectedFile.value) {
-    errorMessage.value = 'Selecione uma imagem ou vídeo antes de publicar.'
+    errorMessage.value = 'Selecione uma imagem ou vídeo.'
     return
   }
 
   if (!trimmedCaption.value) {
-    errorMessage.value = 'Escreva uma legenda antes de publicar.'
+    errorMessage.value = 'Escreva uma legenda.'
     return
   }
 
@@ -123,7 +103,7 @@ async function handleSubmit() {
     })
 
     publishedPost.value = post
-    successMessage.value = 'Post publicado com sucesso. Ele já está no topo do seu feed.'
+    successMessage.value = 'Post publicado com sucesso.'
     form.caption = ''
     clearSelectedFile()
   } catch (error) {
@@ -133,141 +113,335 @@ async function handleSubmit() {
   }
 }
 
-function goToFeed() {
-  router.push({ name: 'feed' })
-}
-
 onBeforeUnmount(() => {
   revokePreview()
 })
 </script>
 
 <template>
-  <section class="create-post">
-    <section class="create-post__hero card border-0">
-      <div class="create-post__hero-copy">
-        <span class="create-post__eyebrow">Nova publicação</span>
-        <h2>Monte seu próximo post antes de soltar no feed.</h2>
-        <p>
-          Envie uma imagem ou vídeo MP4, escreva a legenda e publique direto na sua timeline.
-        </p>
-      </div>
+  <section class="cp">
+    <header class="cp__header">
+      <h1 class="cp__title">Nova publicação</h1>
+    </header>
 
-      <ul class="create-post__hero-facts">
-        <li>Preview instantâneo da mídia selecionada</li>
-        <li>Legenda com limite de {{ POST_CAPTION_MAX_LENGTH }} caracteres</li>
-        <li>Imagens até 10 MB · Vídeos MP4 até 100 MB</li>
-      </ul>
-    </section>
-
-    <p v-if="errorMessage" class="create-post__feedback is-error" role="alert">
+    <p v-if="errorMessage" class="cp__feedback cp__feedback--error" role="alert">
       {{ errorMessage }}
     </p>
-
-    <p v-if="successMessage" class="create-post__feedback is-success" role="status">
+    <p v-if="successMessage" class="cp__feedback cp__feedback--success" role="status">
       {{ successMessage }}
     </p>
 
-    <section class="create-post__grid">
-      <article class="create-post__preview card border-0">
-        <div class="create-post__frame" :class="{ 'has-image': hasSelectedFile }">
-          <MediaDisplay
-            v-if="hasSelectedFile"
-            :src="previewUrl"
-            :alt="previewAlt"
-            :is-video="isVideo"
-            :controls="true"
-            :loop="true"
+    <div class="cp__body">
+      <!-- Media zone -->
+      <div
+        class="cp__zone"
+        :class="{ 'cp__zone--filled': hasSelectedFile }"
+        role="button"
+        tabindex="0"
+        aria-label="Selecionar mídia"
+        @click="openFilePicker"
+        @keydown.enter="openFilePicker"
+        @keydown.space.prevent="openFilePicker"
+      >
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
+          class="cp__file-input"
+          @change="handleFileChange"
+        />
+
+        <MediaDisplay
+          v-if="hasSelectedFile"
+          class="cp__media"
+          :src="previewUrl"
+          :alt="trimmedCaption || 'Preview'"
+          :is-video="isVideo"
+          :controls="true"
+          :loop="true"
+        />
+
+        <div v-else class="cp__placeholder">
+          <svg class="cp__upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+          </svg>
+          <span class="cp__placeholder-label">Selecionar foto ou vídeo</span>
+        </div>
+
+        <button
+          v-if="hasSelectedFile"
+          class="cp__change-btn"
+          type="button"
+          @click.stop="fileInput?.click()"
+        >
+          Trocar
+        </button>
+      </div>
+
+      <!-- Form -->
+      <form class="cp__form" novalidate @submit.prevent="handleSubmit">
+        <div class="cp__caption-wrap">
+          <textarea
+            id="post-caption"
+            v-model="form.caption"
+            class="cp__caption"
+            :maxlength="POST_CAPTION_MAX_LENGTH"
+            placeholder="Escreva uma legenda..."
+            rows="5"
           />
-
-          <div v-else class="create-post__placeholder">
-            <strong>Sua mídia aparece aqui</strong>
-            <p>
-              Escolha um arquivo para visualizar o enquadramento e preparar a legenda antes da
-              publicação.
-            </p>
-          </div>
+          <span class="cp__char-count">{{ captionLength }}/{{ POST_CAPTION_MAX_LENGTH }}</span>
         </div>
 
-        <div class="create-post__preview-copy">
-          <span class="create-post__preview-label">
-            {{ hasSelectedFile ? 'Preview pronto' : 'Área de preview' }}
-          </span>
-          <strong>{{ selectedFileName || 'Nenhum arquivo selecionado' }}</strong>
-          <p>{{ hasSelectedFile ? previewCaption : uploadStateLabel }}</p>
+        <div class="cp__actions">
+          <button
+            class="cp__publish"
+            type="submit"
+            :disabled="!canPublish"
+          >
+            {{ publishButtonLabel }}
+          </button>
+
+          <button
+            v-if="hasSelectedFile"
+            class="cp__secondary"
+            type="button"
+            @click="clearSelectedFile"
+          >
+            Remover mídia
+          </button>
+
+          <RouterLink
+            v-if="publishedPost"
+            class="cp__secondary"
+            :to="{ name: 'post-detalhes', params: { postId: publishedPost.id } }"
+          >
+            Ver post
+          </RouterLink>
+
+          <button
+            v-if="publishedPost"
+            class="cp__secondary"
+            type="button"
+            @click="router.push({ name: 'feed' })"
+          >
+            Ir para o feed
+          </button>
         </div>
-      </article>
-
-      <section class="create-post__form card border-0">
-        <form class="create-post__fields" novalidate @submit.prevent="handleSubmit">
-          <div class="create-post__field">
-            <label class="create-post__label" for="post-image">Imagem ou vídeo</label>
-            <input
-              id="post-image"
-              ref="fileInput"
-              class="form-control"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif,video/mp4"
-              @change="handleFileChange"
-            />
-            <span class="create-post__hint">{{ uploadStateLabel }}</span>
-          </div>
-
-          <div class="create-post__field">
-            <label class="create-post__label" for="post-caption">
-              Legenda
-              <span class="create-post__char-count">
-                {{ captionLength }}/{{ POST_CAPTION_MAX_LENGTH }}
-              </span>
-            </label>
-            <textarea
-              id="post-caption"
-              v-model="form.caption"
-              class="form-control create-post__textarea"
-              :maxlength="POST_CAPTION_MAX_LENGTH"
-              placeholder="Escreva algo sobre esse momento..."
-              rows="4"
-              @input="handleDraftInput"
-            />
-          </div>
-
-          <div class="create-post__actions">
-            <button
-              class="btn btn-primary create-post__submit"
-              type="submit"
-              :disabled="!canPublish"
-            >
-              {{ publishButtonLabel }}
-            </button>
-
-            <button
-              v-if="hasSelectedFile"
-              class="btn btn-outline-secondary"
-              type="button"
-              @click="clearSelectedFile"
-            >
-              Limpar
-            </button>
-
-            <RouterLink
-              v-if="publishedPost"
-              class="btn btn-outline-secondary"
-              :to="{ name: 'post-detalhes', params: { postId: publishedPost.id } }"
-            >
-              Ver post
-            </RouterLink>
-
-            <button
-              v-if="publishedPost"
-              class="btn btn-outline-secondary"
-              type="button"
-              @click="goToFeed"
-            >
-              Ir para o feed
-            </button>
-          </div>
-        </form>
-      </section>
-    </section>
+      </form>
+    </div>
   </section>
 </template>
+
+<style scoped>
+.cp {
+  max-width: 680px;
+}
+
+.cp__header {
+  margin-bottom: 1.75rem;
+}
+
+.cp__title {
+  margin: 0;
+  font-size: clamp(1.4rem, 4vw, 1.9rem);
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.cp__feedback {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.cp__feedback--error {
+  color: #ffb4ba;
+  background: rgba(255, 48, 64, 0.08);
+  border: 1px solid rgba(255, 48, 64, 0.24);
+}
+
+.cp__feedback--success {
+  color: var(--app-success);
+  background: rgba(66, 211, 146, 0.08);
+  border: 1px solid rgba(66, 211, 146, 0.24);
+}
+
+.cp__body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+/* ── Media zone ── */
+.cp__zone {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 0.85rem;
+  border: 1.5px dashed var(--app-border-strong);
+  background: var(--app-surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.cp__zone:hover,
+.cp__zone:focus-visible {
+  border-color: var(--app-accent);
+  background: var(--app-surface-soft);
+  outline: none;
+}
+
+.cp__zone--filled {
+  border-style: solid;
+  cursor: default;
+}
+
+.cp__file-input {
+  display: none;
+}
+
+.cp__media {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cp__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  color: var(--app-muted);
+}
+
+.cp__upload-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  opacity: 0.6;
+}
+
+.cp__placeholder-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.cp__change-btn {
+  position: absolute;
+  bottom: 0.75rem;
+  right: 0.75rem;
+  padding: 0.3rem 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.cp__change-btn:hover {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+/* ── Form ── */
+.cp__form {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.cp__caption-wrap {
+  position: relative;
+}
+
+.cp__caption {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.75rem;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  resize: none;
+  transition: border-color 180ms ease;
+}
+
+.cp__caption:focus {
+  outline: none;
+  border-color: rgba(0, 149, 246, 0.55);
+  box-shadow: 0 0 0 0.2rem rgba(0, 149, 246, 0.14);
+}
+
+.cp__caption::placeholder {
+  color: #6f6f6f;
+}
+
+.cp__char-count {
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--app-muted);
+  pointer-events: none;
+}
+
+.cp__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cp__publish {
+  flex: 1;
+  min-width: 0;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: var(--app-accent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 150ms ease, background 150ms ease;
+}
+
+.cp__publish:hover:not(:disabled) {
+  background: #1877f2;
+}
+
+.cp__publish:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cp__secondary {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--app-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+.cp__secondary:hover {
+  background: var(--app-surface-soft);
+}
+
+@media (max-width: 680px) {
+  .cp__body {
+    grid-template-columns: 1fr;
+  }
+}
+</style>

@@ -39,13 +39,12 @@ const { currentUser, logout } = useAuth()
 
 const navItems = [
   { name: 'feed',          label: 'Home',          icon: 'home'     },
-  { name: 'reels',         label: 'Reels',          icon: 'reels'    },
-  { name: 'explorar',      label: 'Explorar',       icon: 'discover' },
-  { name: 'descobrir',     label: 'Buscar',         icon: 'search'   },
-  { name: 'notificacoes',  label: 'Notificações',   icon: 'heart'    },
-  { name: 'criar',         label: 'Criar',          icon: 'create'   },
-  { name: 'salvos',        label: 'Salvos',         icon: 'save'     },
-  { name: 'perfil',        label: 'Perfil',         icon: 'profile'  },
+  { name: 'reels',         label: 'Reels',         icon: 'reels'    },
+  { name: 'explorar',      label: 'Explorar',      icon: 'discover' },
+  { name: 'descobrir',     label: 'Buscar',        icon: 'search'   },
+  { name: 'notificacoes',  label: 'Notificações',  icon: 'heart'    },
+  { name: 'criar',         label: 'Criar',         icon: 'create'   },
+  { name: 'salvos',        label: 'Salvos',        icon: 'save'     },
 ]
 
 const activeNavName = computed(() => route.meta.navItem ?? route.name)
@@ -172,7 +171,7 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
           <span class="ig-brand__glyph">
             <AppIcon name="instagram" />
           </span>
-          <span class="ig-brand__wordmark">InstaClone</span>
+          <span class="ig-brand__wordmark">Manya</span>
         </RouterLink>
 
         <nav class="ig-nav" aria-label="Navegação principal">
