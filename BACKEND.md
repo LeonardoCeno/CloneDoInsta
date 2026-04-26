@@ -20,7 +20,7 @@ O backend é uma API REST que alimenta a rede social Manya. Toda comunicação c
 | Servidor | FrankenPHP (baseado em Caddy) |
 | Banco de Dados | MySQL 8.0 |
 | Autenticação | Laravel Sanctum (tokens Bearer) |
-| Armazenamento | Sistema de arquivos local (storage/) |
+| Armazenamento | Google Cloud Storage (bucket `manya-media`) |
 | Containerização | Docker multistage |
 | Deploy | Google Cloud Run |
 
@@ -520,11 +520,13 @@ Configurações relevantes:
 - Notificações de `follow_request` são deletadas ao aceitar ou recusar
 
 ### Armazenamento de Mídia
-- Posts: `storage/app/public/posts/{uuid}.{ext}`
-- Avatars: `storage/app/public/avatars/{uuid}.{ext}`
-- Stories: `storage/app/public/stories/{uuid}.{ext}`
-- Servidos publicamente via symlink em `public/storage/`
+- Todos os uploads vão para o **Google Cloud Storage** (`manya-media`) via driver S3-compatível
+- Posts: `posts/{uuid}.{ext}`
+- Avatars: `avatars/{uuid}.{ext}`
+- Stories: `stories/{uuid}.{ext}`
+- URLs públicas no formato `https://storage.googleapis.com/manya-media/{path}`
 - UUIDs garantem nomes únicos e evitam colisões
+- Arquivos sobrevivem a deploys, reinícios e escalonamento do Cloud Run
 
 ### Paginação
 - **Cursor**: Feed principal (evita duplicatas em listas que mudam frequentemente)
@@ -563,3 +565,6 @@ Configurações relevantes:
 | `DB_USERNAME` | Usuário do banco |
 | `DB_PASSWORD` | Senha do banco |
 | `CORS_ALLOWED_ORIGINS` | URL do frontend (permite requisições cross-origin) |
+| `GCS_KEY` | HMAC Access Key do Google Cloud Storage |
+| `GCS_SECRET` | HMAC Secret do Google Cloud Storage |
+| `GCS_BUCKET` | Nome do bucket (`manya-media`) |

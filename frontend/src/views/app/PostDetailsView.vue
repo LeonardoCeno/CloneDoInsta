@@ -471,6 +471,7 @@ watch(
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  container-type: inline-size;
 }
 
 .pm-close {
@@ -518,7 +519,7 @@ watch(
 .pm-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 400px;
-  width: min(1100px, 100%);
+  width: min(88cqi, 1100px);
   max-height: calc(100vh - 3rem);
   background: var(--app-surface);
   border-radius: 4px;

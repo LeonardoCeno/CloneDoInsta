@@ -85,7 +85,9 @@ O mesmo vale para comentários. O `CommentObserver` intercepta a criação e not
 
 No Cloud Run, o container inicializa com um script que: garante o `.env`, espera o banco ficar disponível, executa as migrations automaticamente e sobe o servidor. Zero intervenção manual.
 
-A conexão com o Cloud SQL usa **socket Unix** — mais segura que TCP porque não passa pela rede, e mais rápida por eliminar overhead de handshake."
+A conexão com o Cloud SQL usa **socket Unix** — mais segura que TCP porque não passa pela rede, e mais rápida por eliminar overhead de handshake.
+
+Os uploads de imagem e vídeo vão para o **Google Cloud Storage** via API S3-compatível. Container é efêmero — qualquer arquivo salvo localmente some no próximo deploy. O GCS resolve isso: o arquivo existe fora do container, sobrevive a qualquer redeploy ou escalonamento."
 
 ---
 

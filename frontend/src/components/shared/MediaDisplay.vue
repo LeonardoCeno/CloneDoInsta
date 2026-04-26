@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 const props = defineProps({
   src: { type: String, required: true },
@@ -13,9 +13,29 @@ const props = defineProps({
 })
 
 const videoEl = ref(null)
+let observer = null
 
 onMounted(() => {
-  if (videoEl.value) videoEl.value.muted = props.muted
+  if (!videoEl.value) return
+  videoEl.value.muted = props.muted
+
+  if (props.autoplay) {
+    observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          videoEl.value?.play().catch(() => {})
+        } else {
+          videoEl.value?.pause()
+        }
+      },
+      { threshold: 0.2 },
+    )
+    observer.observe(videoEl.value)
+  }
+})
+
+onUnmounted(() => {
+  observer?.disconnect()
 })
 
 watch(() => props.muted, (val) => {
