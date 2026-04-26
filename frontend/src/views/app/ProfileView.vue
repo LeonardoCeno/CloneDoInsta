@@ -663,14 +663,14 @@ watch(
   aspect-ratio: 1 / 1;
   color: inherit;
   text-decoration: none;
-  background: var(--app-surface-soft);
+  background: #000;
 }
 
 .profile-grid__item img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .profile-grid__overlay {

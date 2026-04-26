@@ -293,8 +293,8 @@ function handleCommentSubmit() {
   display: block;
   width: 100%;
   aspect-ratio: 1 / 1;
-  object-fit: cover;
-  background: var(--app-surface-soft);
+  object-fit: contain;
+  background: #000;
 }
 
 .feed-post__body {

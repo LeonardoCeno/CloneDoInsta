@@ -151,13 +151,13 @@ onMounted(() => loadPosts({ reset: true }))
   aspect-ratio: 3 / 5;
   overflow: hidden;
   display: block;
-  background: var(--app-surface-soft);
+  background: #000;
 }
 
 .explore__img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
   transition: transform 300ms ease;
 }
