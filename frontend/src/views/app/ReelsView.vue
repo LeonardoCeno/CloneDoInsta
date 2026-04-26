@@ -467,12 +467,13 @@ onUnmounted(() => {
   height: 100%;
   scroll-snap-align: start;
   scroll-snap-stop: always;
+  container-type: inline-size;
 }
 
 .reel-item__media {
   position: relative;
   flex: none;
-  width: min(calc(100% - 80px), 420px);
+  width: min(calc(100cqi - 80px), 500px);
   height: 100%;
   border-radius: 0.75rem;
   overflow: hidden;

@@ -307,6 +307,7 @@ textarea::placeholder {
   grid-column: 2;
   min-width: 0;
   padding: 1.5rem 0 2rem;
+  container-type: inline-size;
 }
 
 .ig-main {
@@ -315,7 +316,7 @@ textarea::placeholder {
 }
 
 .ig-main--feed {
-  width: min(100%, 540px);
+  width: min(61cqi, 630px);
 }
 
 .ig-main--default {

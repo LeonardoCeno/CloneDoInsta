@@ -249,11 +249,11 @@ onBeforeUnmount(revokePreview)
   display: flex;
   justify-content: center;
   padding: 1rem 0 3rem;
+  container-type: inline-size;
 }
 
 .cp__card {
-  width: 100%;
-  max-width: 900px;
+  width: min(100cqi, 900px);
   border: 1px solid var(--app-border);
   border-radius: 0.85rem;
   overflow: hidden;
