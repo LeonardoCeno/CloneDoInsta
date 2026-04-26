@@ -413,6 +413,10 @@ watch(
                 <button class="pm-icon-btn" type="button" aria-label="Compartilhar">
                   <AppIcon name="share" />
                 </button>
+
+                <button class="pm-icon-btn" type="button" aria-label="Republicar">
+                  <AppIcon name="repost" />
+                </button>
               </div>
 
               <button

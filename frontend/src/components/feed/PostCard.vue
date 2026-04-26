@@ -228,7 +228,7 @@ function handleCommentSubmit() {
   border-radius: 0;
   background: transparent;
   border-bottom: 1px solid var(--app-border);
-  padding-bottom: 0.5rem;
+  margin-bottom: 0.62rem;
 }
 
 .feed-post__header {

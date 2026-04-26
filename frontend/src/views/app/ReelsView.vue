@@ -358,6 +358,13 @@ onUnmounted(() => {
           </RouterLink>
         </div>
 
+        <!-- Repost -->
+        <div class="reel-item__action">
+          <button class="reel-item__action-btn" type="button" aria-label="Republicar">
+            <AppIcon name="repost" />
+          </button>
+        </div>
+
         <!-- Mute (only for video reels) -->
         <div v-if="post.isVideo" class="reel-item__action">
           <button
@@ -370,26 +377,6 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <div class="reel-item__nav">
-          <button
-            class="reel-item__nav-btn"
-            type="button"
-            :disabled="activeIndex === 0"
-            aria-label="Reel anterior"
-            @click="goPrev"
-          >
-            <AppIcon name="chevron-left" />
-          </button>
-          <button
-            class="reel-item__nav-btn reel-item__nav-btn--down"
-            type="button"
-            :disabled="activeIndex === posts.length - 1 && !hasMore"
-            aria-label="Próximo reel"
-            @click="goNext"
-          >
-            <AppIcon name="chevron-left" />
-          </button>
-        </div>
       </aside>
     </div>
 
@@ -397,6 +384,28 @@ onUnmounted(() => {
     <div v-if="!isLoading && posts.length === 0" class="reels__empty">
       <p>Nenhum post disponível ainda.</p>
     </div>
+  </div>
+
+  <!-- Nav: fixed right edge, centered vertically -->
+  <div v-if="posts.length > 0" class="reels-nav">
+    <button
+      class="reels-nav__btn"
+      type="button"
+      :disabled="activeIndex === 0"
+      aria-label="Reel anterior"
+      @click="goPrev"
+    >
+      <AppIcon name="chevron-left" />
+    </button>
+    <button
+      class="reels-nav__btn reels-nav__btn--down"
+      type="button"
+      :disabled="activeIndex === posts.length - 1 && !hasMore"
+      aria-label="Próximo reel"
+      @click="goNext"
+    >
+      <AppIcon name="chevron-left" />
+    </button>
   </div>
 
   <!-- Lightbox -->
@@ -423,6 +432,8 @@ onUnmounted(() => {
 
 .reel-item {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: 1rem;
   height: 100%;
   scroll-snap-align: start;
@@ -432,7 +443,7 @@ onUnmounted(() => {
 .reel-item__media {
   position: relative;
   flex: none;
-  width: calc(100% - 80px);
+  width: min(calc(100% - 80px), 420px);
   height: 100%;
   border-radius: 1.25rem;
   overflow: hidden;
@@ -573,18 +584,22 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.reel-item__nav {
+.reels-nav {
+  position: fixed;
+  right: 1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.5rem;
+  gap: 0.4rem;
+  z-index: 10;
 }
 
-.reel-item__nav-btn {
+.reels-nav__btn {
   display: grid;
   place-items: center;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2.6rem;
+  height: 2.6rem;
   padding: 0;
   border: 1px solid var(--app-border);
   border-radius: 50%;
@@ -594,11 +609,11 @@ onUnmounted(() => {
   transition: background 150ms ease;
 }
 
-.reel-item__nav-btn:hover:not(:disabled) {
+.reels-nav__btn:hover:not(:disabled) {
   background: var(--app-surface);
 }
 
-.reel-item__nav-btn:disabled {
+.reels-nav__btn:disabled {
   opacity: 0.25;
   cursor: not-allowed;
 }
@@ -702,11 +717,11 @@ onUnmounted(() => {
 }
 
 /* Rotate chevrons to up/down arrows */
-.reel-item__nav-btn :deep(.app-icon) {
-  transform: rotate(90deg); /* chevron-left → up arrow */
+.reels-nav__btn :deep(.app-icon) {
+  transform: rotate(90deg);
 }
 
-.reel-item__nav-btn--down :deep(.app-icon) {
-  transform: rotate(-90deg); /* chevron-left → down arrow */
+.reels-nav__btn--down :deep(.app-icon) {
+  transform: rotate(-90deg);
 }
 </style>

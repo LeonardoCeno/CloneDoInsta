@@ -15,27 +15,21 @@ const searchQuery = ref('')
 const isSearching = ref(false)
 
 const people = ref([])
-const totalPeople = ref(0)
 const currentPage = ref(1)
 const hasMore = ref(false)
 const isLoading = ref(false)
 const loadError = ref('')
-const feedbackMessage = ref('')
 
 let debounceTimer = null
 
 watch(searchQuery, (query) => {
   clearTimeout(debounceTimer)
   loadError.value = ''
-
   if (!query.trim()) {
     loadPeople({ reset: true })
     return
   }
-
-  debounceTimer = setTimeout(() => {
-    searchPeopleInner(query.trim())
-  }, 350)
+  debounceTimer = setTimeout(() => searchPeopleInner(query.trim()), 350)
 })
 
 function clearSearch() {
@@ -46,19 +40,13 @@ const viewerFollowingSet = ref(new Set())
 const pendingFollowIds = ref(new Set())
 const pendingTargets = ref(new Set())
 
-function isFollowing(account) {
-  return viewerFollowingSet.value.has(account.id)
-}
-
-function isFollowPending(account) {
-  return pendingFollowIds.value.has(account.id)
-}
+function isFollowing(account) { return viewerFollowingSet.value.has(account.id) }
+function isFollowPending(account) { return pendingFollowIds.value.has(account.id) }
 
 function getProfileLink(username) {
-  if (currentUser.value?.username === username) {
-    return { name: 'perfil' }
-  }
-  return { name: 'perfil', query: { user: username } }
+  return currentUser.value?.username === username
+    ? { name: 'perfil' }
+    : { name: 'perfil', query: { user: username } }
 }
 
 function seedSetsFromPeople(users) {
@@ -75,13 +63,10 @@ function seedSetsFromPeople(users) {
 async function searchPeopleInner(query) {
   isSearching.value = true
   isLoading.value = true
-  loadError.value = ''
-
   try {
     const response = await usersService.search(query, 30)
     const users = (response.data ?? []).map(normalizeUser).filter(Boolean)
     people.value = users
-    totalPeople.value = Number(response.total ?? users.length)
     hasMore.value = false
     seedSetsFromPeople(users)
   } catch (error) {
@@ -94,15 +79,11 @@ async function searchPeopleInner(query) {
 
 async function loadPeople({ reset = true } = {}) {
   isLoading.value = true
-  loadError.value = ''
-
   try {
     const page = reset ? 1 : currentPage.value + 1
     const response = await usersService.suggestions(20, page)
     const users = (response.data ?? []).map(normalizeUser).filter(Boolean)
-
     people.value = reset ? users : [...people.value, ...users]
-    totalPeople.value = Number(response.total ?? people.value.length)
     currentPage.value = Number(response.current_page ?? page)
     hasMore.value = Boolean(response.next_page_url)
     seedSetsFromPeople(users)
@@ -114,360 +95,393 @@ async function loadPeople({ reset = true } = {}) {
 }
 
 async function handleToggleFollow(account) {
-  if (!currentUser.value?.id || pendingTargets.value.has(account.id)) {
-    return
-  }
-
+  if (!currentUser.value?.id || pendingTargets.value.has(account.id)) return
   pendingTargets.value = new Set([...pendingTargets.value, account.id])
-
   try {
     if (isFollowing(account)) {
       await followsService.unfollow(account.id)
       viewerFollowingSet.value = new Set([...viewerFollowingSet.value].filter((id) => id !== account.id))
-      feedbackMessage.value = `Você deixou de seguir @${account.username}.`
     } else if (isFollowPending(account)) {
       await followsService.unfollow(account.id)
       pendingFollowIds.value = new Set([...pendingFollowIds.value].filter((id) => id !== account.id))
-      feedbackMessage.value = `Solicitação para @${account.username} cancelada.`
     } else {
       const result = await followsService.follow(account.id)
       if (result.status === 'pending') {
         pendingFollowIds.value = new Set([...pendingFollowIds.value, account.id])
-        feedbackMessage.value = `Solicitação enviada para @${account.username}.`
       } else {
         viewerFollowingSet.value = new Set([...viewerFollowingSet.value, account.id])
-        feedbackMessage.value = `Agora você segue @${account.username}.`
       }
     }
-  } catch (error) {
-    feedbackMessage.value = extractErrorMessage(
-      error,
-      'Não foi possível atualizar esse perfil agora.',
-    )
+  } catch {
+    // silent
   } finally {
     pendingTargets.value = new Set([...pendingTargets.value].filter((id) => id !== account.id))
   }
 }
 
-onMounted(() => {
-  loadPeople({ reset: true })
-})
+function formatCount(n) {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace('.0', '') + 'M'
+  if (n >= 1000) return (n / 1000).toFixed(1).replace('.0', '') + 'mil'
+  return String(n)
+}
+
+onMounted(() => loadPeople({ reset: true }))
 </script>
 
 <template>
-  <section class="discover">
-    <section class="discover__hero card border-0">
-      <div>
-        <span class="discover__eyebrow">Pessoas que você pode conhecer</span>
-        <h2>Descubra novos perfis</h2>
-        <p>
-          Conheça todas as contas da rede e comece a seguir quem combina com o seu radar.
-        </p>
-      </div>
+  <div class="ps">
+    <h1 class="ps__title">Pesquisar</h1>
 
-      <div class="discover__hero-stat">
-        <strong>{{ totalPeople }}</strong>
-        <span>perfis disponíveis</span>
-      </div>
-    </section>
-
-    <div class="discover__search">
-      <label class="discover__search-label" for="discover-search">
+    <!-- Search field -->
+    <div class="ps__field">
+      <span class="ps__field-icon">
         <AppIcon name="search" />
-      </label>
+      </span>
       <input
-        id="discover-search"
         v-model="searchQuery"
-        class="discover__search-input"
+        class="ps__input"
         type="search"
-        placeholder="Pesquisar por nome ou @usuário..."
+        placeholder="Pesquisar"
         autocomplete="off"
         spellcheck="false"
       />
       <button
         v-if="searchQuery"
-        class="discover__search-clear"
+        class="ps__clear"
         type="button"
-        aria-label="Limpar pesquisa"
+        aria-label="Limpar"
         @click="clearSearch"
       >
         <AppIcon name="close" />
       </button>
     </div>
 
-    <p v-if="loadError" class="discover__feedback is-error" role="alert">
-      {{ loadError }}
-    </p>
+    <!-- Error -->
+    <p v-if="loadError" class="ps__error" role="alert">{{ loadError }}</p>
 
-    <p v-if="feedbackMessage" class="discover__feedback" role="status">
-      {{ feedbackMessage }}
-    </p>
-
-    <p v-if="searchQuery && !isLoading && people.length > 0" class="discover__search-meta">
-      {{ people.length }} resultado{{ people.length !== 1 ? 's' : '' }} para
-      <strong>{{ searchQuery }}</strong>
-    </p>
-
-    <section v-if="people.length > 0" class="discover__grid">
-      <article
-        v-for="account in people"
-        :key="account.id"
-        class="discover__card card border-0"
-      >
-        <RouterLink :to="getProfileLink(account.username)" class="discover__identity">
-          <ProfileAvatar
-            :name="account.name"
-            :username="account.username"
-            :avatar-url="account.avatarUrl"
-            :colors="account.colors"
-            size="md"
-          />
-
-          <div class="discover__copy">
-            <strong>{{ account.name }}</strong>
-            <span>@{{ account.username }}</span>
-            <p v-if="account.bio">{{ account.bio }}</p>
-          </div>
-        </RouterLink>
-
-        <button
-          class="btn"
-          :class="(isFollowing(account) || isFollowPending(account)) ? 'btn-outline-secondary' : 'btn-primary'"
-          type="button"
-          :disabled="pendingTargets.has(account.id)"
-          @click="handleToggleFollow(account)"
-        >
-          {{ isFollowing(account) ? 'Seguindo' : isFollowPending(account) ? 'Solicitado' : 'Seguir' }}
-        </button>
-      </article>
-    </section>
-
-    <section v-else-if="!isLoading" class="discover__empty card border-0">
-      <h3>{{ searchQuery ? 'Nenhum resultado' : 'Nenhum perfil para sugerir' }}</h3>
-      <p>
-        {{
-          searchQuery
-            ? `Nenhum usuário encontrado para "${searchQuery}". Tente outro nome ou @usuário.`
-            : 'Assim que novas pessoas entrarem na rede, elas aparecem por aqui.'
-        }}
-      </p>
-    </section>
-
-    <section v-else class="discover__empty card border-0">
-      <p class="mb-0">Carregando pessoas...</p>
-    </section>
-
-    <div v-if="hasMore" class="discover__more">
-      <button
-        class="btn btn-outline-secondary"
-        type="button"
-        :disabled="isLoading"
-        @click="loadPeople({ reset: false })"
-      >
-        {{ isLoading ? 'Carregando...' : 'Carregar mais pessoas' }}
-      </button>
+    <!-- Skeleton -->
+    <div v-if="isLoading && people.length === 0" class="ps__skeleton-list">
+      <div v-for="n in 6" :key="n" class="ps__skeleton-row" />
     </div>
-  </section>
+
+    <template v-else>
+      <!-- Section header -->
+      <div class="ps__section-head">
+        <span class="ps__section-title">
+          {{ searchQuery ? `${people.length} resultado${people.length !== 1 ? 's' : ''}` : 'Sugestões' }}
+        </span>
+      </div>
+
+      <!-- Empty state -->
+      <div v-if="people.length === 0 && !isLoading" class="ps__empty">
+        <p>{{ searchQuery ? `Nenhum usuário encontrado para "${searchQuery}".` : 'Nenhuma sugestão no momento.' }}</p>
+      </div>
+
+      <!-- People list -->
+      <ul v-else class="ps__list">
+        <li v-for="account in people" :key="account.id" class="ps__row">
+          <RouterLink :to="getProfileLink(account.username)" class="ps__avatar">
+            <ProfileAvatar
+              :name="account.name"
+              :username="account.username"
+              :avatar-url="account.avatarUrl"
+              :colors="account.colors"
+              size="sm"
+            />
+          </RouterLink>
+
+          <RouterLink :to="getProfileLink(account.username)" class="ps__row-text">
+            <span class="ps__username">{{ account.username }}</span>
+            <span class="ps__meta">
+              {{ account.name }}
+              <template v-if="account.followersCount != null">
+                · {{ formatCount(account.followersCount) }} seguidores
+              </template>
+            </span>
+          </RouterLink>
+
+          <button
+            v-if="account.id !== currentUser?.id"
+            class="ps__follow-btn"
+            :class="{
+              'ps__follow-btn--following': isFollowing(account) || isFollowPending(account)
+            }"
+            type="button"
+            :disabled="pendingTargets.has(account.id)"
+            @click="handleToggleFollow(account)"
+          >
+            {{ isFollowing(account) ? 'Seguindo' : isFollowPending(account) ? 'Solicitado' : 'Seguir' }}
+          </button>
+        </li>
+      </ul>
+
+      <!-- Load more -->
+      <div v-if="hasMore" class="ps__more">
+        <button
+          class="ps__more-btn"
+          type="button"
+          :disabled="isLoading"
+          @click="loadPeople({ reset: false })"
+        >
+          {{ isLoading ? 'Carregando...' : 'Carregar mais' }}
+        </button>
+      </div>
+    </template>
+  </div>
 </template>
 
 <style scoped>
-.discover {
-  display: grid;
-  gap: 1rem;
+.ps {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
 }
 
-.discover__hero,
-.discover__card,
-.discover__empty {
-  padding: 1.4rem;
-  border-radius: 1.75rem;
-  background: var(--app-surface);
-}
-
-.discover__hero {
-  display: grid;
-  gap: 1rem;
-}
-
-.discover__eyebrow {
-  display: inline-block;
-  margin-bottom: 0.35rem;
-  color: var(--app-accent-strong);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.discover__hero h2,
-.discover__empty h3 {
-  margin: 0 0 0.35rem;
-  font-size: clamp(1.6rem, 4vw, 2.3rem);
-  font-weight: 800;
-}
-
-.discover__hero p,
-.discover__copy span,
-.discover__copy p,
-.discover__empty p {
-  margin: 0;
-  color: var(--app-muted);
-  line-height: 1.65;
-}
-
-.discover__hero-stat {
-  display: grid;
-  gap: 0.2rem;
-  padding: 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1.15rem;
-  background: var(--app-surface-soft);
-}
-
-.discover__hero-stat strong {
-  font-size: 1.4rem;
-}
-
-.discover__feedback {
-  margin: 0;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 1rem;
+/* ── Title ── */
+.ps__title {
+  margin: 0.75rem 0 1.1rem;
+  font-size: 1.5rem;
+  font-weight: 300;
   color: var(--app-text);
-  font-weight: 600;
-  background: var(--app-surface-soft);
 }
 
-.discover__feedback.is-error {
-  color: #ffb4ba;
-  border-color: rgba(255, 48, 64, 0.28);
-  background: rgba(255, 48, 64, 0.08);
-}
-
-.discover__grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.discover__card {
-  display: grid;
-  gap: 1rem;
-}
-
-.discover__identity {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.9rem;
-  color: inherit;
-  text-decoration: none;
-}
-
-.discover__copy {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.discover__copy strong {
-  font-size: 1.05rem;
-}
-
-.discover__search {
+/* ── Search field ── */
+.ps__field {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
   border: 1px solid var(--app-border);
-  border-radius: 1.15rem;
-  background: var(--app-surface);
-  transition: border-color 180ms ease, box-shadow 180ms ease;
+  border-radius: 8px;
+  background: var(--app-surface-soft);
+  transition: border-color 180ms ease;
 }
 
-.discover__search:focus-within {
-  border-color: rgba(0, 149, 246, 0.5);
-  box-shadow: 0 0 0 3px rgba(0, 149, 246, 0.12);
+.ps__field:focus-within {
+  border-color: var(--app-muted);
 }
 
-.discover__search-label {
-  display: grid;
-  place-items: center;
+.ps__field-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--app-muted);
-  flex-shrink: 0;
+  display: flex;
+  pointer-events: none;
 }
 
-.discover__search-label .app-icon {
-  width: 18px;
-  height: 18px;
+.ps__field-icon .app-icon {
+  width: 16px;
+  height: 16px;
 }
 
-.discover__search-input {
-  flex: 1;
-  min-width: 0;
-  padding: 0;
+.ps__input {
+  width: 100%;
+  padding: 12px 36px 12px 42px;
   border: 0;
-  color: var(--app-text);
-  font-size: 0.97rem;
   background: transparent;
-}
-
-.discover__search-input::placeholder {
-  color: var(--app-muted);
-}
-
-.discover__search-input:focus {
+  color: var(--app-text);
+  font-size: 0.9rem;
+  font-family: inherit;
   outline: none;
 }
 
-.discover__search-input::-webkit-search-cancel-button {
+.ps__input::placeholder {
+  color: var(--app-muted);
+}
+
+.ps__input::-webkit-search-cancel-button {
   display: none;
 }
 
-.discover__search-clear {
+.ps__clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--app-muted);
+  color: var(--app-bg);
   display: grid;
   place-items: center;
-  width: 1.6rem;
-  height: 1.6rem;
-  padding: 0;
   border: 0;
-  border-radius: 50%;
-  color: var(--app-muted);
-  background: var(--app-surface-soft);
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 150ms ease, background 150ms ease;
 }
 
-.discover__search-clear:hover {
-  color: var(--app-text);
-  background: var(--app-border);
+.ps__clear .app-icon {
+  width: 10px;
+  height: 10px;
 }
 
-.discover__search-clear .app-icon {
-  width: 13px;
-  height: 13px;
-}
-
-.discover__search-meta {
-  margin: 0;
-  padding: 0 0.25rem;
-  color: var(--app-muted);
+/* ── Error ── */
+.ps__error {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 48, 64, 0.28);
+  border-radius: 0.75rem;
+  color: #ffb4ba;
+  background: rgba(255, 48, 64, 0.08);
   font-size: 0.88rem;
 }
 
-.discover__search-meta strong {
+/* ── Section head ── */
+.ps__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.ps__section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
   color: var(--app-text);
 }
 
-.discover__more {
-  display: flex;
-  justify-content: center;
-  padding: 0.5rem 0;
+/* ── List ── */
+.ps__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-@media (min-width: 768px) {
-  .discover__hero,
-  .discover__card {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-  }
+.ps__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px;
+  border-radius: 8px;
+  transition: background 150ms ease;
+}
+
+.ps__row:hover {
+  background: var(--app-surface-soft);
+}
+
+.ps__avatar {
+  flex-shrink: 0;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.ps__row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ps__username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--app-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ps__meta {
+  font-size: 0.82rem;
+  color: var(--app-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Follow button ── */
+.ps__follow-btn {
+  flex-shrink: 0;
+  padding: 0.38rem 0.9rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  transition: opacity 150ms ease, background 150ms ease;
+  background: var(--app-accent);
+  color: #fff;
+}
+
+.ps__follow-btn--following {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+}
+
+.ps__follow-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ps__follow-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+/* ── Empty ── */
+.ps__empty {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--app-muted);
+  font-size: 0.9rem;
+}
+
+.ps__empty p { margin: 0; }
+
+/* ── Skeleton ── */
+.ps__skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ps__skeleton-row {
+  height: 60px;
+  border-radius: 8px;
+  background: var(--app-surface-soft);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.ps__skeleton-row:nth-child(2) { animation-delay: 0.1s; }
+.ps__skeleton-row:nth-child(3) { animation-delay: 0.2s; }
+.ps__skeleton-row:nth-child(4) { animation-delay: 0.15s; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ── Load more ── */
+.ps__more {
+  display: flex;
+  justify-content: center;
+  padding: 1.25rem 0 0.5rem;
+}
+
+.ps__more-btn {
+  min-width: 14rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--app-border);
+  border-radius: 0.8rem;
+  color: var(--app-text);
+  font-weight: 700;
+  background: var(--app-surface-soft);
+  transition: background 180ms ease, border-color 180ms ease;
+}
+
+.ps__more-btn:hover:not(:disabled) {
+  border-color: var(--app-border-strong);
+  background: #1b1b1b;
+}
+
+.ps__more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>
