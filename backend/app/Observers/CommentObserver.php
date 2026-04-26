@@ -19,10 +19,13 @@ class CommentObserver
         }
 
         $this->notifications->notify($post->user, 'comment', [
-            'actor_id'       => $comment->user_id,
-            'actor_username' => $comment->user->username,
-            'post_id'        => $post->id,
-            'comment_id'     => $comment->id,
+            'actor_id'         => $comment->user_id,
+            'actor_username'   => $comment->user->username,
+            'actor_avatar_url' => $comment->user->avatar_url,
+            'post_id'          => $post->id,
+            'post_image_url'   => $post->image_url,
+            'post_is_video'    => $post->is_video,
+            'comment_id'       => $comment->id,
         ]);
     }
 }

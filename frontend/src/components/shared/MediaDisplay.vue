@@ -55,7 +55,7 @@ watch(() => props.muted, (val) => {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: #111;
 }
 
 .media-wrap__el {

@@ -394,15 +394,6 @@ watch(
         <span>Republicações</span>
       </button>
 
-      <RouterLink class="profile-tabs__item" :to="followersRoute">
-        <AppIcon name="profile" />
-        <span>Seguidores</span>
-      </RouterLink>
-
-      <RouterLink class="profile-tabs__item" :to="followingRoute">
-        <AppIcon name="discover" />
-        <span>Seguindo</span>
-      </RouterLink>
     </nav>
 
     <!-- Posts grid -->
@@ -663,7 +654,7 @@ watch(
   aspect-ratio: 1 / 1;
   color: inherit;
   text-decoration: none;
-  background: #000;
+  background: #111;
 }
 
 .profile-grid__item img {

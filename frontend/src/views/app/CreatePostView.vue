@@ -391,7 +391,7 @@ onBeforeUnmount(revokePreview)
 }
 
 .cp__media-side {
-  background: #000;
+  background: #111;
   display: grid;
   place-items: center;
   min-height: 480px;

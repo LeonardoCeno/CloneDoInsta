@@ -38,8 +38,9 @@ class FollowService
 
         $notificationType = $target->is_private ? 'follow_request' : 'follow';
         $this->notifications->notify($target, $notificationType, [
-            'actor_id'       => $follower->id,
-            'actor_username' => $follower->username,
+            'actor_id'         => $follower->id,
+            'actor_username'   => $follower->username,
+            'actor_avatar_url' => $follower->avatar_url,
         ]);
 
         return ['status' => $status];

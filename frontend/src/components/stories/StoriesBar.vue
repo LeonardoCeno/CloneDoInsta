@@ -187,8 +187,8 @@ function getRealGroupIdx(otherGroupUser) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
   padding: 3px;
   background: var(--app-border);
@@ -244,7 +244,7 @@ function getRealGroupIdx(otherGroupUser) {
 }
 
 .stories-bar__label {
-  max-width: 64px;
+  max-width: 80px;
   color: var(--app-text);
   font-size: 0.72rem;
   text-align: center;

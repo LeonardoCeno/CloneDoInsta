@@ -1,29 +1,61 @@
 <script setup>
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const store = useNotificationsStore()
 
-const unread = computed(() => store.notifications.filter((n) => !n.readAt))
-const read = computed(() => store.notifications.filter((n) => n.readAt))
+const activeTab = ref('all') // 'all' | 'follows' | 'likes' | 'comments'
+
+const tabs = [
+  { key: 'all',      label: 'Tudo' },
+  { key: 'follows',  label: 'Seguidores' },
+  { key: 'likes',    label: 'Curtidas' },
+  { key: 'comments', label: 'Comentários' },
+]
+
+function matchesTab(n) {
+  if (activeTab.value === 'all') return true
+  if (activeTab.value === 'follows') return n.type === 'follow' || n.type === 'follow_request'
+  if (activeTab.value === 'likes') return n.type === 'like'
+  if (activeTab.value === 'comments') return n.type === 'comment'
+  return true
+}
+
+const filtered = computed(() => store.notifications.filter(matchesTab))
+
+function getGroup(createdAt) {
+  if (!createdAt) return 'Anteriores'
+  const now = Date.now()
+  const diff = now - new Date(createdAt).getTime()
+  const day = 86_400_000
+  if (diff < day) return 'Hoje'
+  if (diff < 7 * day) return 'Esta semana'
+  if (diff < 30 * day) return 'Este mês'
+  return 'Anteriores'
+}
+
+const GROUP_ORDER = ['Hoje', 'Esta semana', 'Este mês', 'Anteriores']
+
+const grouped = computed(() => {
+  const map = {}
+  for (const n of filtered.value) {
+    const g = getGroup(n.createdAt)
+    if (!map[g]) map[g] = []
+    map[g].push(n)
+  }
+  return GROUP_ORDER.filter((g) => map[g]).map((g) => ({ label: g, items: map[g] }))
+})
 
 function timeAgo(value) {
   if (!value) return ''
-  const diffMs = Math.max(0, Date.now() - new Date(value).getTime())
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
-  const week = 7 * day
-
-  if (diffMs < minute) return 'agora'
-  if (diffMs < hour) return `${Math.floor(diffMs / minute)} min`
-  if (diffMs < day) return `${Math.floor(diffMs / hour)} h`
-  if (diffMs < week) return `${Math.floor(diffMs / day)} d`
-
-  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(
-    new Date(value),
-  )
+  const diff = Math.max(0, Date.now() - new Date(value).getTime())
+  const min = 60_000, hour = 3_600_000, day = 86_400_000, week = 7 * day
+  if (diff < min) return 'agora'
+  if (diff < hour) return `${Math.floor(diff / min)}min`
+  if (diff < day) return `${Math.floor(diff / hour)}h`
+  if (diff < week) return `${Math.floor(diff / day)}d`
+  return new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' }).format(new Date(value))
 }
 
 function describeNotification(n) {
@@ -35,111 +67,168 @@ function describeNotification(n) {
   return `${actor} interagiu com você.`
 }
 
-function notificationLink(n) {
-  if ((n.type === 'like' || n.type === 'comment') && n.data.post_id) {
-    return { name: 'post-detalhes', params: { postId: n.data.post_id } }
-  }
-  if ((n.type === 'follow' || n.type === 'follow_request') && n.data.actor_username) {
-    return { name: 'perfil', query: { user: n.data.actor_username } }
-  }
+function postLink(n) {
+  if (n.data.post_id) return { name: 'post-detalhes', params: { postId: n.data.post_id } }
   return null
 }
 
-function notificationIcon(type) {
-  if (type === 'like') return '❤️'
-  if (type === 'comment') return '💬'
-  if (type === 'follow') return '👤'
-  if (type === 'follow_request') return '🔒'
-  return '🔔'
+function profileLink(n) {
+  if (n.data.actor_username) return { name: 'perfil', query: { user: n.data.actor_username } }
+  return null
+}
+
+function avatarInitial(username) {
+  return (username ?? '?')[0].toUpperCase()
+}
+
+// follow-back toggle per actor
+const followingBack = ref({})
+
+function toggleFollow(actorUsername) {
+  followingBack.value[actorUsername] = !followingBack.value[actorUsername]
 }
 
 onMounted(async () => {
   await store.fetchList({ reset: true })
-  if (store.unreadCount > 0) {
-    await store.markAllRead()
-  }
+  if (store.unreadCount > 0) await store.markAllRead()
 })
 </script>
 
 <template>
-  <section class="notif">
-    <header class="notif__header card border-0">
-      <div>
-        <span class="notif__eyebrow">Atividade recente</span>
-        <h2>Notificações</h2>
-      </div>
-      <button
-        v-if="store.notifications.length > 0"
-        class="notif__mark-btn"
-        type="button"
-        @click="store.markAllRead"
-      >
-        Marcar todas como lidas
-      </button>
-    </header>
+  <section class="nv">
+    <!-- Title -->
+    <h1 class="nv__title">Notificações</h1>
 
-    <!-- Loading skeleton -->
-    <div v-if="store.loading && !store.loaded" class="notif__list">
-      <div v-for="n in 5" :key="n" class="notif__skeleton" />
+    <!-- Tabs -->
+    <div class="nv__tabs" role="tablist">
+      <button
+        v-for="tab in tabs"
+        :key="tab.key"
+        class="nv__tab"
+        :class="{ 'nv__tab--active': activeTab === tab.key }"
+        role="tab"
+        :aria-selected="activeTab === tab.key"
+        type="button"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
-    <!-- Unread -->
-    <section v-if="unread.length > 0" class="notif__group">
-      <h3 class="notif__group-title">Novas</h3>
-      <ul class="notif__list">
-        <li v-for="n in unread" :key="n.id" class="notif__item notif__item--unread">
-          <component
-            :is="notificationLink(n) ? RouterLink : 'div'"
-            v-bind="notificationLink(n) ? { to: notificationLink(n) } : {}"
-            class="notif__row"
-          >
-            <span class="notif__icon">{{ notificationIcon(n.type) }}</span>
-            <span class="notif__text">{{ describeNotification(n) }}</span>
-            <time class="notif__time" :datetime="n.createdAt">{{ timeAgo(n.createdAt) }}</time>
-          </component>
-          <div v-if="n.type === 'follow_request'" class="notif__actions">
-            <button class="notif__action-btn notif__action-btn--accept" type="button" @click.prevent="store.acceptFollowRequest(n)">Confirmar</button>
-            <button class="notif__action-btn notif__action-btn--decline" type="button" @click.prevent="store.declineFollowRequest(n)">Recusar</button>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <!-- Read -->
-    <section v-if="read.length > 0" class="notif__group">
-      <h3 v-if="unread.length > 0" class="notif__group-title">Anteriores</h3>
-      <ul class="notif__list">
-        <li v-for="n in read" :key="n.id" class="notif__item">
-          <component
-            :is="notificationLink(n) ? RouterLink : 'div'"
-            v-bind="notificationLink(n) ? { to: notificationLink(n) } : {}"
-            class="notif__row"
-          >
-            <span class="notif__icon">{{ notificationIcon(n.type) }}</span>
-            <span class="notif__text">{{ describeNotification(n) }}</span>
-            <time class="notif__time" :datetime="n.createdAt">{{ timeAgo(n.createdAt) }}</time>
-          </component>
-          <div v-if="n.type === 'follow_request'" class="notif__actions">
-            <button class="notif__action-btn notif__action-btn--accept" type="button" @click.prevent="store.acceptFollowRequest(n)">Confirmar</button>
-            <button class="notif__action-btn notif__action-btn--decline" type="button" @click.prevent="store.declineFollowRequest(n)">Recusar</button>
-          </div>
-        </li>
-      </ul>
-    </section>
+    <!-- Skeleton -->
+    <div v-if="store.loading && !store.loaded" class="nv__skeleton-list">
+      <div v-for="n in 6" :key="n" class="nv__skeleton-row" />
+    </div>
 
     <!-- Empty -->
-    <section
-      v-if="store.loaded && store.notifications.length === 0"
-      class="notif__empty card border-0"
-    >
-      <h3>Sem notificações</h3>
-      <p>Quando alguém curtir, comentar ou te seguir, você verá aqui.</p>
-    </section>
+    <div v-else-if="store.loaded && filtered.length === 0" class="nv__empty">
+      <p>Nenhuma notificação aqui ainda.</p>
+    </div>
+
+    <!-- Groups -->
+    <template v-else>
+      <div v-for="group in grouped" :key="group.label" class="nv__group">
+        <h2 class="nv__group-label">{{ group.label }}</h2>
+
+        <ul class="nv__list">
+          <li
+            v-for="n in group.items"
+            :key="n.id"
+            class="nv__item"
+            :class="{ 'nv__item--unread': !n.readAt }"
+          >
+            <!-- Avatar -->
+            <component
+              :is="profileLink(n) ? RouterLink : 'div'"
+              v-bind="profileLink(n) ? { to: profileLink(n) } : {}"
+              class="nv__avatar"
+              :aria-label="n.data.actor_username ? `@${n.data.actor_username}` : undefined"
+            >
+              <img
+                v-if="n.data.actor_avatar_url"
+                class="nv__avatar-img"
+                :src="n.data.actor_avatar_url"
+                :alt="n.data.actor_username ?? ''"
+              />
+              <span v-else class="nv__avatar-initials">{{ avatarInitial(n.data.actor_username) }}</span>
+            </component>
+
+            <!-- Text -->
+            <component
+              :is="postLink(n) ? RouterLink : profileLink(n) ? RouterLink : 'div'"
+              v-bind="postLink(n) ? { to: postLink(n) } : profileLink(n) ? { to: profileLink(n) } : {}"
+              class="nv__body"
+            >
+              <span class="nv__text">{{ describeNotification(n) }}</span>
+              <span class="nv__time">{{ timeAgo(n.createdAt) }}</span>
+            </component>
+
+            <!-- Right side: post thumb OR follow button OR accept/decline -->
+            <div class="nv__right">
+              <!-- Follow request: accept / decline -->
+              <template v-if="n.type === 'follow_request'">
+                <div class="nv__follow-actions">
+                  <button
+                    class="nv__btn nv__btn--accept"
+                    type="button"
+                    @click.prevent="store.acceptFollowRequest(n)"
+                  >Confirmar</button>
+                  <button
+                    class="nv__btn nv__btn--decline"
+                    type="button"
+                    @click.prevent="store.declineFollowRequest(n)"
+                  >Recusar</button>
+                </div>
+              </template>
+
+              <!-- Follow: follow-back toggle -->
+              <template v-else-if="n.type === 'follow'">
+                <button
+                  class="nv__btn"
+                  :class="followingBack[n.data.actor_username] ? 'nv__btn--following' : 'nv__btn--follow'"
+                  type="button"
+                  @click="toggleFollow(n.data.actor_username)"
+                >
+                  {{ followingBack[n.data.actor_username] ? 'Seguindo' : 'Seguir de volta' }}
+                </button>
+              </template>
+
+              <!-- Like / comment: post thumbnail -->
+              <template v-else-if="n.data.post_image_url">
+                <RouterLink
+                  v-if="postLink(n)"
+                  class="nv__thumb-link"
+                  :to="postLink(n)"
+                >
+                  <video
+                    v-if="n.data.post_is_video"
+                    class="nv__thumb"
+                    :src="n.data.post_image_url"
+                    preload="metadata"
+                    muted
+                    playsinline
+                  />
+                  <img
+                    v-else
+                    class="nv__thumb"
+                    :src="n.data.post_image_url"
+                    alt=""
+                  />
+                </RouterLink>
+                <div v-else class="nv__thumb-link">
+                  <img class="nv__thumb" :src="n.data.post_image_url" alt="" />
+                </div>
+              </template>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </template>
 
     <!-- Load more -->
-    <div v-if="store.hasMore" class="notif__more">
+    <div v-if="store.hasMore" class="nv__more">
       <button
-        class="notif__more-btn"
+        class="nv__more-btn"
         type="button"
         :disabled="store.loading"
         @click="store.fetchList({ reset: false })"
@@ -151,162 +240,252 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.notif {
-  display: grid;
-  gap: 1rem;
+.nv {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-bottom: 3rem;
 }
 
-.notif__header {
+/* ── Title ── */
+.nv__title {
+  margin: 0.75rem 0 1rem;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 800;
+  color: var(--app-text);
+}
+
+/* ── Tabs ── */
+.nv__tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 1.4rem;
-  border-radius: 1.75rem;
-  background: var(--app-surface);
+  gap: 0;
+  border-bottom: 1px solid var(--app-border);
+  margin-bottom: 1.25rem;
 }
 
-.notif__eyebrow {
-  display: inline-block;
-  margin-bottom: 0.35rem;
-  color: var(--app-accent-strong);
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.notif__header h2 {
-  margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2.3rem);
-  font-weight: 800;
-}
-
-.notif__mark-btn {
-  padding: 0.55rem 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 0.75rem;
+.nv__tab {
+  padding: 0.65rem 1.1rem;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
   color: var(--app-muted);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  background: var(--app-surface-soft);
   cursor: pointer;
   transition: color 150ms ease, border-color 150ms ease;
   white-space: nowrap;
 }
 
-.notif__mark-btn:hover {
+.nv__tab:hover {
   color: var(--app-text);
-  border-color: var(--app-border-strong);
 }
 
-.notif__group-title {
+.nv__tab--active {
+  color: var(--app-text);
+  border-bottom-color: var(--app-text);
+}
+
+/* ── Groups ── */
+.nv__group {
+  margin-bottom: 1.5rem;
+}
+
+.nv__group-label {
   margin: 0 0 0.5rem;
-  padding: 0 0.25rem;
-  color: var(--app-muted);
   font-size: 0.8rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: var(--app-muted);
 }
 
-.notif__group {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.notif__list {
-  display: grid;
-  gap: 0.4rem;
+/* ── List ── */
+.nv__list {
+  list-style: none;
   margin: 0;
   padding: 0;
-  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.notif__item {
-  border-radius: 1rem;
-  background: var(--app-surface);
-  overflow: hidden;
-  transition: background 150ms ease;
-}
-
-.notif__item--unread {
-  background: color-mix(in srgb, var(--app-link) 8%, var(--app-surface));
-  border: 1px solid color-mix(in srgb, var(--app-link) 20%, transparent);
-}
-
-.notif__row {
+.nv__item {
   display: flex;
   align-items: center;
   gap: 0.85rem;
-  padding: 0.95rem 1rem;
-  color: inherit;
-  text-decoration: none;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.85rem;
+  transition: background 150ms ease;
 }
 
-a.notif__row:hover {
+.nv__item:hover {
   background: var(--app-surface-soft);
 }
 
-.notif__icon {
-  font-size: 1.25rem;
+.nv__item--unread {
+  background: color-mix(in srgb, var(--app-accent) 7%, transparent);
+}
+
+.nv__item--unread:hover {
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+/* ── Avatar ── */
+.nv__avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
   flex-shrink: 0;
-  line-height: 1;
+  overflow: hidden;
+  background: var(--app-surface-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1.5px solid var(--app-border);
 }
 
-.notif__text {
-  flex: 1;
-  font-size: 0.93rem;
-  line-height: 1.5;
-  color: var(--app-text);
+.nv__avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.notif__time {
+.nv__avatar-initials {
+  font-size: 1.05rem;
+  font-weight: 700;
   color: var(--app-muted);
+  user-select: none;
+}
+
+/* ── Body ── */
+.nv__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.nv__text {
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--app-text);
+  white-space: normal;
+}
+
+.nv__time {
   font-size: 0.78rem;
-  white-space: nowrap;
+  color: var(--app-muted);
+}
+
+/* ── Right side ── */
+.nv__right {
   flex-shrink: 0;
 }
 
-/* Skeleton */
-.notif__skeleton {
-  height: 56px;
-  border-radius: 1rem;
+/* Post thumbnail */
+.nv__thumb-link {
+  display: block;
+  width: 44px;
+  height: 44px;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: #111;
+}
+
+.nv__thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Follow actions */
+.nv__follow-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+/* Buttons */
+.nv__btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 150ms ease, background 150ms ease;
+}
+
+.nv__btn:hover {
+  opacity: 0.85;
+}
+
+.nv__btn--follow {
+  background: var(--app-accent);
+  color: #fff;
+}
+
+.nv__btn--following {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+}
+
+.nv__btn--accept {
+  background: var(--app-accent);
+  color: #fff;
+}
+
+.nv__btn--decline {
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+}
+
+/* ── Skeleton ── */
+.nv__skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nv__skeleton-row {
+  height: 60px;
+  border-radius: 0.85rem;
   background: var(--app-surface-soft);
   animation: pulse 1.4s ease-in-out infinite;
 }
 
+.nv__skeleton-row:nth-child(2) { animation-delay: 0.1s; }
+.nv__skeleton-row:nth-child(3) { animation-delay: 0.2s; }
+.nv__skeleton-row:nth-child(4) { animation-delay: 0.15s; }
+
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.45; }
+  50% { opacity: 0.4; }
 }
 
-.notif__empty {
-  padding: 2rem 1.4rem;
-  border-radius: 1.75rem;
-  background: var(--app-surface);
-}
-
-.notif__empty h3 {
-  margin: 0 0 0.35rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.notif__empty p {
-  margin: 0;
+/* ── Empty ── */
+.nv__empty {
+  padding: 3rem 1rem;
+  text-align: center;
   color: var(--app-muted);
-  line-height: 1.65;
+  font-size: 0.9rem;
 }
 
-.notif__more {
+/* ── Load more ── */
+.nv__more {
   display: flex;
   justify-content: center;
-  padding: 0.5rem 0;
+  padding: 1.25rem 0 0.5rem;
 }
 
-.notif__more-btn {
+.nv__more-btn {
   min-width: 14rem;
   padding: 0.8rem 1.1rem;
   border: 1px solid var(--app-border);
@@ -314,46 +493,16 @@ a.notif__row:hover {
   color: var(--app-text);
   font-weight: 700;
   background: var(--app-surface-soft);
-  transition: background-color 180ms ease, border-color 180ms ease;
+  transition: background 180ms ease, border-color 180ms ease;
 }
 
-.notif__more-btn:hover:not(:disabled) {
+.nv__more-btn:hover:not(:disabled) {
   border-color: var(--app-border-strong);
   background: #1b1b1b;
 }
 
-.notif__more-btn:disabled {
+.nv__more-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-}
-
-.notif__actions {
-  display: flex;
-  gap: 0.5rem;
-  padding: 0 1rem 0.85rem;
-}
-
-.notif__action-btn {
-  padding: 0.4rem 1rem;
-  border: none;
-  border-radius: 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: opacity 150ms ease;
-}
-
-.notif__action-btn:hover {
-  opacity: 0.85;
-}
-
-.notif__action-btn--accept {
-  background: var(--app-link, #0095f6);
-  color: #fff;
-}
-
-.notif__action-btn--decline {
-  background: var(--app-surface-soft);
-  color: var(--app-text);
 }
 </style>

@@ -19,9 +19,12 @@ class LikeObserver
         }
 
         $this->notifications->notify($post->user, 'like', [
-            'actor_id'       => $like->user_id,
-            'actor_username' => $like->user->username,
-            'post_id'        => $post->id,
+            'actor_id'         => $like->user_id,
+            'actor_username'   => $like->user->username,
+            'actor_avatar_url' => $like->user->avatar_url,
+            'post_id'          => $post->id,
+            'post_image_url'   => $post->image_url,
+            'post_is_video'    => $post->is_video,
         ]);
     }
 }

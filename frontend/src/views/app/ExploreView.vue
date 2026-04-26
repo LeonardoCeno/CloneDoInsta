@@ -42,11 +42,7 @@ onMounted(() => loadPosts({ reset: true }))
 
 <template>
   <section class="explore">
-    <!-- Banner -->
-    <header class="explore__banner">
-      <h1 class="explore__banner-title">Explore o mundo!</h1>
-      <p class="explore__banner-sub">Descubra novas pessoas, lugares e momentos.</p>
-    </header>
+    <p class="explore__tagline">Descubra novas pessoas, lugares e momentos.</p>
 
     <p v-if="loadError" class="explore__error" role="alert">{{ loadError }}</p>
 
@@ -130,48 +126,11 @@ onMounted(() => loadPosts({ reset: true }))
   gap: 0;
 }
 
-/* ── Banner ── */
-.explore__banner {
-  position: relative;
-  height: 180px;
-  border-radius: 0.85rem;
-  overflow: hidden;
-  margin-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 2rem;
-  color: #fff;
-  background:
-    linear-gradient(135deg, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.25) 100%),
-    linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-}
-
-.explore__banner::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at 20% 50%, rgba(0, 149, 246, 0.25) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 30%, rgba(120, 60, 220, 0.2) 0%, transparent 55%);
-  pointer-events: none;
-}
-
-.explore__banner-title {
-  position: relative;
-  margin: 0;
-  font-size: clamp(1.6rem, 4vw, 2.2rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
-}
-
-.explore__banner-sub {
-  position: relative;
-  margin: 0.4rem 0 0;
-  font-size: 0.95rem;
-  opacity: 0.9;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.4);
+.explore__tagline {
+  margin: 0.75rem 0 0.85rem;
+  color: var(--app-text);
+  font-size: clamp(1.4rem, 4vw, 2rem);
+  font-weight: 800;
 }
 
 /* ── Error ── */
@@ -196,7 +155,7 @@ onMounted(() => loadPosts({ reset: true }))
   aspect-ratio: 4 / 5;
   overflow: hidden;
   display: block;
-  background: #000;
+  background: #111;
 }
 
 .explore__img {
@@ -308,15 +267,6 @@ onMounted(() => loadPosts({ reset: true }))
 
 /* ── Mobile ── */
 @media (max-width: 768px) {
-  .explore__banner {
-    height: 140px;
-    padding: 0 1.25rem;
-  }
-
-  .explore__banner-title {
-    font-size: 1.5rem;
-  }
-
   .explore__grid,
   .explore__skeleton {
     gap: 2px;

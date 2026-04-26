@@ -294,7 +294,7 @@ function handleCommentSubmit() {
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: contain;
-  background: #000;
+  background: #111;
 }
 
 .feed-post__body {

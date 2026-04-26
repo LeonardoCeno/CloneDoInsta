@@ -524,7 +524,7 @@ watch(
 /* ── Media ── */
 .pm-media {
   position: relative;
-  background: #000;
+  background: #111;
   display: grid;
   place-items: center;
   min-height: 520px;
