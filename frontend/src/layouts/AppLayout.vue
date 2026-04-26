@@ -339,9 +339,14 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
           </ul>
         </section>
 
-        <p class="ig-rail__meta">
-          Sobre · Ajuda · API · Privacidade · Termos · Localizações
-        </p>
+        <div class="ig-rail__footer">
+          <p class="ig-rail__footer-links">
+            Sobre · Ajuda · Imprensa · API · Carreiras ·
+            Privacidade · Termos · Localizações · Idioma ·
+            Meta Verified
+          </p>
+          <p class="ig-rail__footer-copy">© 2026 MANYA FROM META</p>
+        </div>
       </aside>
     </div>
   </RouterView>

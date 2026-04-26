@@ -530,6 +530,7 @@ onUnmounted(() => {
 /* Sidebar */
 .reel-item__sidebar {
   flex: none;
+  align-self: stretch;
   width: 64px;
   display: flex;
   flex-direction: column;
