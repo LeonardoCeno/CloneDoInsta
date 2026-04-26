@@ -44,12 +44,13 @@ php artisan storage:link --force 2>/dev/null || true
 
 # Laravel caches
 if [ "${APP_ENV:-production}" = "production" ]; then
-    php artisan config:cache
     php artisan route:cache
     php artisan event:cache
 else
     php artisan config:clear
     php artisan route:clear
 fi
+
+php artisan l5-swagger:generate 2>/dev/null || true
 
 exec "$@"

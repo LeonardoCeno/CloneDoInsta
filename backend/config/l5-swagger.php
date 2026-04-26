@@ -109,10 +109,6 @@ return [
              */
             'default_processors_configuration' => [],
 
-            /*
-             * Custom analyser that includes DocBlockAnnotationFactory so @OA\ docblock annotations are parsed.
-             * l5-swagger v11 defaults to attribute-only; this restores docblock support.
-             */
             'analyser' => new \OpenApi\Analysers\ReflectionAnalyser([
                 new \OpenApi\Analysers\AttributeAnnotationFactory(),
                 new \OpenApi\Analysers\DocBlockAnnotationFactory(),

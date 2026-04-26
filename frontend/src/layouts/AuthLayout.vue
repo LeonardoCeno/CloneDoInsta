@@ -2,7 +2,7 @@
   <div class="auth-shell">
     <div class="auth-shell__panel card border-0">
       <div class="auth-shell__brand">
-        <span class="auth-shell__wordmark">InstaClone</span>
+        <span class="auth-shell__wordmark">Manya</span>
         <p>Acesse sua conta ou crie um novo perfil.</p>
       </div>
 

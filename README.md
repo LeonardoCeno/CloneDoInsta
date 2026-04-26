@@ -106,8 +106,8 @@ composer dev
 | Serviço  | URL                        |
 |----------|----------------------------|
 | Frontend | http://localhost:5173       |
-| API      | http://localhost:8000       |
 | Swagger  | http://localhost:8000/docs  |
+| health | http://localhost:8000/up |
 
 ### Seed (opcional)
 
