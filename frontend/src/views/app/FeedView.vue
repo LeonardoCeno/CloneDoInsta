@@ -1,5 +1,9 @@
+<script>
+export default { name: 'FeedView' }
+</script>
+
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onActivated, ref } from 'vue'
 import PostCard from '@/components/feed/PostCard.vue'
 import StoriesBar from '@/components/stories/StoriesBar.vue'
 import StoryViewer from '@/components/stories/StoryViewer.vue'
@@ -27,7 +31,8 @@ const {
   addComment,
 } = useFeed()
 
-onMounted(async () => {
+async function initFeed() {
+  if (feedPosts.value.length > 0) return
   try {
     await Promise.all([
       fetchFeed({ reset: true }),
@@ -36,7 +41,10 @@ onMounted(async () => {
   } catch (error) {
     loadError.value = extractErrorMessage(error, 'Não foi possível carregar o feed agora.')
   }
-})
+}
+
+onMounted(initFeed)
+onActivated(initFeed)
 
 async function handleToggleLike(postId) {
   const post = feedPosts.value.find((item) => item.id === postId)
@@ -77,23 +85,23 @@ async function handleSubmitComment(payload) {
 
 async function handleToggleRepost(postId) {
   const post = feedPosts.value.find((item) => item.id === postId)
-  if (!post) {
-    return
-  }
+  if (!post) return
+
+  const wasReposted = post.repostedByMe
+  post.repostedByMe = !wasReposted
+  post.repostsCount = wasReposted ? Math.max(0, post.repostsCount - 1) : post.repostsCount + 1
 
   try {
-    if (post.repostedByMe) {
+    if (wasReposted) {
       await repostsService.unrepost(post.id)
-      post.repostedByMe = false
-      post.repostsCount = Math.max(0, post.repostsCount - 1)
       toastStore.show('Republicação removida.', 'info')
     } else {
       await repostsService.repost(post.id)
-      post.repostedByMe = true
-      post.repostsCount = post.repostsCount + 1
       toastStore.show('Post republicado.', 'success')
     }
   } catch (error) {
+    post.repostedByMe = wasReposted
+    post.repostsCount = wasReposted ? post.repostsCount + 1 : Math.max(0, post.repostsCount - 1)
     toastStore.show(
       extractErrorMessage(error, 'Não foi possível republicar o post.'),
       'error',

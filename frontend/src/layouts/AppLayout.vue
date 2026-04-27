@@ -251,7 +251,9 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
 
       <div class="ig-content">
         <main class="ig-main" :class="`ig-main--${contentMode}`">
-          <component :is="Component" />
+          <KeepAlive include="FeedView">
+            <component :is="Component" />
+          </KeepAlive>
         </main>
       </div>
 

@@ -22,8 +22,7 @@ class FeedService
             ->withLikedByViewer($user)
             ->withSavedByViewer($user)
             ->withRepostedByViewer($user)
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->inRandomOrder()
             ->cursorPaginate($perPage);
     }
 }

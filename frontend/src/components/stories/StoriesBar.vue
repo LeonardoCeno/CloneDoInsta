@@ -214,6 +214,11 @@ function getRealGroupIdx(otherGroupUser) {
   justify-content: center;
 }
 
+.story-circle__inner :deep(.profile-avatar) {
+  width: 100%;
+  height: 100%;
+}
+
 .stories-bar__add {
   position: absolute;
   bottom: 0;

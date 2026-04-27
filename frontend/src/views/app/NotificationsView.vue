@@ -81,13 +81,6 @@ function avatarInitial(username) {
   return (username ?? '?')[0].toUpperCase()
 }
 
-// follow-back toggle per actor
-const followingBack = ref({})
-
-function toggleFollow(actorUsername) {
-  followingBack.value[actorUsername] = !followingBack.value[actorUsername]
-}
-
 onMounted(async () => {
   await Promise.all([
     store.fetchList({ reset: true }),
@@ -183,16 +176,13 @@ onMounted(async () => {
                 </div>
               </template>
 
-              <!-- Follow: follow-back toggle -->
+              <!-- Follow: ver perfil -->
               <template v-else-if="n.type === 'follow'">
-                <button
-                  class="nv__btn"
-                  :class="followingBack[n.data.actor_username] ? 'nv__btn--following' : 'nv__btn--follow'"
-                  type="button"
-                  @click="toggleFollow(n.data.actor_username)"
-                >
-                  {{ followingBack[n.data.actor_username] ? 'Seguindo' : 'Seguir de volta' }}
-                </button>
+                <RouterLink
+                  v-if="profileLink(n)"
+                  class="nv__btn nv__btn--follow"
+                  :to="profileLink(n)"
+                >Ver perfil</RouterLink>
               </template>
 
               <!-- Like / comment: post thumbnail -->

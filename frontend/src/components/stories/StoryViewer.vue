@@ -6,7 +6,8 @@ import ProfileAvatar from '@/components/profile/ProfileAvatar.vue'
 import AppIcon from '@/components/layout/AppIcon.vue'
 import MediaDisplay from '@/components/shared/MediaDisplay.vue'
 
-const STORY_DURATION = 5000
+const IMAGE_DURATION = 5000
+const VIDEO_MAX_DURATION = 30000
 
 const storiesStore = useStoriesStore()
 const { currentUser } = useAuth()
@@ -45,11 +46,13 @@ function startProgress() {
   startTime = performance.now()
   progress.value = 0
 
+  const duration = currentStory.value?.isVideo ? VIDEO_MAX_DURATION : IMAGE_DURATION
+
   function tick(now) {
     const elapsed = now - startTime
-    progress.value = Math.min((elapsed / STORY_DURATION) * 100, 100)
+    progress.value = Math.min((elapsed / duration) * 100, 100)
 
-    if (elapsed >= STORY_DURATION) {
+    if (elapsed >= duration) {
       storiesStore.goNext()
     } else {
       rafId = requestAnimationFrame(tick)
@@ -238,6 +241,7 @@ onUnmounted(() => {
               :muted="false"
               :controls="false"
               class="story-viewer__img"
+              @ended="storiesStore.goNext()"
             />
           </div>
         </div>
@@ -253,11 +257,12 @@ onUnmounted(() => {
           @keydown.enter="storiesStore.goTo(storiesStore.viewerGroupIdx + 1, 0)"
         >
           <div class="story-viewer__side-card">
-            <img
+            <MediaDisplay
               v-if="nextGroup.stories[0]"
               :src="nextGroup.stories[0].imageUrl"
+              :is-video="nextGroup.stories[0].isVideo"
+              :thumbnail="true"
               class="story-viewer__side-img"
-              alt=""
             />
             <div class="story-viewer__side-user">
               <ProfileAvatar
@@ -450,8 +455,11 @@ onUnmounted(() => {
 .story-viewer__side-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   display: block;
+}
+
+.story-viewer__side-img :deep(.media-wrap__el) {
+  object-fit: cover;
 }
 
 .story-viewer__side-user {

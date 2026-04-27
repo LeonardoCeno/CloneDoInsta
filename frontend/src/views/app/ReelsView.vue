@@ -44,6 +44,10 @@ async function loadPosts({ reset = true } = {}) {
     posts.value = reset ? normalized : [...posts.value, ...normalized]
     currentPage.value = Number(response.current_page ?? page)
     hasMore.value = Boolean(response.next_page_url)
+
+    for (const p of normalized) {
+      if (p.author?.isFollowing) followedIds.value.add(p.author.id)
+    }
   } finally {
     isLoading.value = false
   }
@@ -201,9 +205,33 @@ function formatCount(n) {
 }
 
 const lightboxSrc = ref(null)
-const isMuted = ref(true)
+const isMuted = ref(false)
+const volume = ref(0.5)
+const showVolumeSlider = ref(false)
 const flashIcon = ref(null)
 let flashTimer = null
+let hideVolumeTimer = null
+let sliderDragging = false
+
+function onVolumeEnter() {
+  clearTimeout(hideVolumeTimer)
+  showVolumeSlider.value = true
+}
+
+function onVolumeLeave() {
+  if (sliderDragging) return
+  hideVolumeTimer = setTimeout(() => { showVolumeSlider.value = false }, 1000)
+}
+
+function onSliderMouseDown() {
+  sliderDragging = true
+  clearTimeout(hideVolumeTimer)
+}
+
+function onSliderMouseUp() {
+  sliderDragging = false
+  onVolumeLeave()
+}
 
 function getVideoAt(idx) {
   const items = containerRef.value?.querySelectorAll('.reel-item')
@@ -232,17 +260,37 @@ function handleMediaClick(post, idx) {
   }
 }
 
+
+function applyVolumeToVideo(video) {
+  if (!video) return
+  video.muted = isMuted.value
+  video.volume = volume.value
+}
+
 function toggleMute() {
   isMuted.value = !isMuted.value
+  applyVolumeToVideo(getVideoAt(activeIndex.value))
+}
+
+function setVolume(val) {
+  volume.value = val
   const video = getVideoAt(activeIndex.value)
-  if (video) video.muted = isMuted.value
+  if (!video) return
+  video.volume = val
+  if (val === 0) {
+    isMuted.value = true
+    video.muted = true
+  } else if (isMuted.value) {
+    isMuted.value = false
+    video.muted = false
+  }
 }
 
 watch(activeIndex, (newIdx, oldIdx) => {
   getVideoAt(oldIdx)?.pause()
   const next = getVideoAt(newIdx)
   if (next) {
-    next.muted = isMuted.value
+    applyVolumeToVideo(next)
     next.play().catch(() => {})
   }
 })
@@ -251,7 +299,11 @@ onMounted(async () => {
   await loadPosts({ reset: true })
   window.addEventListener('keydown', onKeydown)
   await nextTick()
-  getVideoAt(0)?.play().catch(() => {})
+  const first = getVideoAt(0)
+  if (first) {
+    applyVolumeToVideo(first)
+    first.play().catch(() => {})
+  }
 })
 
 onUnmounted(() => {
@@ -283,7 +335,7 @@ onUnmounted(() => {
             :src="post.imageUrl"
             :alt="post.imageAlt"
             :is-video="post.isVideo"
-            :muted="true"
+            :muted="isMuted"
             :loop="true"
             class="reel-item__img"
           />
@@ -394,8 +446,27 @@ onUnmounted(() => {
           </button>
         </div>
 
-        <!-- Mute (only for video reels) -->
-        <div v-if="post.isVideo" class="reel-item__action">
+        <!-- Volume (only for video reels) -->
+        <div
+          v-if="post.isVideo"
+          class="reel-item__action reel-item__volume-group"
+          @mouseenter="onVolumeEnter"
+          @mouseleave="onVolumeLeave"
+        >
+          <div class="reel-item__volume-slider" :class="{ 'is-visible': showVolumeSlider }">
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.02"
+              :value="isMuted ? 0 : volume"
+              class="reel-item__slider"
+              aria-label="Volume"
+              @input="setVolume(+$event.target.value)"
+              @mousedown="onSliderMouseDown"
+              @mouseup="onSliderMouseUp"
+            />
+          </div>
           <button
             class="reel-item__action-btn"
             type="button"
@@ -575,6 +646,72 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.2rem;
 }
+
+.reel-item__volume-group {
+  position: relative;
+}
+
+.reel-item__volume-slider {
+  position: absolute;
+  right: calc(100% + 0.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.72);
+  border-radius: 2rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.reel-item__volume-slider.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.reel-item__slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 80px;
+  height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.reel-item__slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.reel-item__slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  margin-top: -5px;
+  cursor: pointer;
+}
+
+.reel-item__slider::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.reel-item__slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+}
+
 
 .reel-item__action-btn {
   display: grid;

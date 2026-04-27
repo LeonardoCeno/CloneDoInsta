@@ -108,33 +108,47 @@ export const useFeedStore = defineStore('feed', {
     },
 
     async toggleLike(post) {
-      if (!post) {
+      if (!post) return null
+
+      const wasLiked = post.likedByMe
+      const prevCount = post.likesCount
+      this.applyPostPatch(post.id, {
+        likedByMe: !wasLiked,
+        likesCount: wasLiked ? Math.max(0, prevCount - 1) : prevCount + 1,
+      })
+
+      try {
+        const action = wasLiked ? likesService.unlike : likesService.like
+        const response = await action(post.id)
+        this.applyPostPatch(post.id, {
+          likedByMe: Boolean(response.liked),
+          likesCount: Number(response.likes_count ?? post.likesCount),
+        })
+        return response
+      } catch {
+        this.applyPostPatch(post.id, { likedByMe: wasLiked, likesCount: prevCount })
         return null
       }
-
-      const action = post.likedByMe ? likesService.unlike : likesService.like
-      const response = await action(post.id)
-      this.applyPostPatch(post.id, {
-        likedByMe: Boolean(response.liked),
-        likesCount: Number(response.likes_count ?? post.likesCount),
-      })
-      return response
     },
 
     async toggleSave(post) {
-      if (!post) {
+      if (!post) return null
+
+      const wasSaved = post.savedByMe
+      this.applyPostPatch(post.id, { savedByMe: !wasSaved })
+
+      try {
+        const action = wasSaved ? savesService.unsave : savesService.save
+        const response = await action(post.id)
+        const savedByMe = Boolean(response.saved)
+        this.applyPostPatch(post.id, { savedByMe })
+        const idx = this.savedPosts.findIndex((p) => p.id === post.id)
+        if (!savedByMe && idx >= 0) this.savedPosts.splice(idx, 1)
+        return response
+      } catch {
+        this.applyPostPatch(post.id, { savedByMe: wasSaved })
         return null
       }
-
-      const action = post.savedByMe ? savesService.unsave : savesService.save
-      const response = await action(post.id)
-      const savedByMe = Boolean(response.saved)
-      this.applyPostPatch(post.id, { savedByMe })
-      const idx = this.savedPosts.findIndex((p) => p.id === post.id)
-      if (!savedByMe && idx >= 0) {
-        this.savedPosts.splice(idx, 1)
-      }
-      return response
     },
 
     async fetchSaved({ reset = false } = {}) {

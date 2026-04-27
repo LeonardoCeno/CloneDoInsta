@@ -73,7 +73,7 @@ class PostService
             $query->whereHas('user', fn ($q) => $q->where('is_private', false));
         }
 
-        return $query->latest()->paginate($perPage);
+        return $query->inRandomOrder()->paginate($perPage);
     }
 
     private function viewerCanSee(?User $viewer, User $user): bool

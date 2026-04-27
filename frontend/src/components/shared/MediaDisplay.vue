@@ -10,25 +10,51 @@ const props = defineProps({
   loop: { type: Boolean, default: false },
   muted: { type: Boolean, default: true },
   controls: { type: Boolean, default: false },
+  autoplayThreshold: { type: Number, default: 0.2 },
+  pauseThreshold: { type: Number, default: null },
 })
+
+const emit = defineEmits(['ended'])
 
 const videoEl = ref(null)
 let observer = null
+let observerPausing = false
+let userPaused = false
+
+function onVideoPause() {
+  if (!observerPausing) userPaused = true
+}
+
+function onVideoPlay() {
+  userPaused = false
+}
 
 onMounted(() => {
   if (!videoEl.value) return
   videoEl.value.muted = props.muted
+  videoEl.value.volume = 0.5
 
   if (props.autoplay) {
+    videoEl.value.addEventListener('pause', onVideoPause)
+    videoEl.value.addEventListener('play', onVideoPlay)
+
+    const playAt = props.autoplayThreshold
+    const pauseAt = props.pauseThreshold ?? props.autoplayThreshold
+    const thresholds = pauseAt !== playAt ? [pauseAt, playAt] : [playAt]
+
     observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
-          videoEl.value?.play().catch(() => {})
-        } else {
+        const ratio = entry.intersectionRatio
+        if (ratio >= playAt) {
+          if (!userPaused) videoEl.value?.play().catch(() => {})
+        } else if (ratio < pauseAt) {
+          observerPausing = true
           videoEl.value?.pause()
+          observerPausing = false
         }
+        // between pauseAt and playAt: do nothing, keep current state
       },
-      { threshold: 0.2 },
+      { threshold: thresholds },
     )
     observer.observe(videoEl.value)
   }
@@ -36,6 +62,8 @@ onMounted(() => {
 
 onUnmounted(() => {
   observer?.disconnect()
+  videoEl.value?.removeEventListener('pause', onVideoPause)
+  videoEl.value?.removeEventListener('play', onVideoPlay)
 })
 
 watch(() => props.muted, (val) => {
@@ -55,6 +83,7 @@ watch(() => props.muted, (val) => {
       playsinline
       preload="metadata"
       class="media-wrap__el"
+      @ended="emit('ended')"
     />
     <img
       v-else

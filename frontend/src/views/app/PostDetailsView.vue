@@ -316,7 +316,7 @@ watch(
             :alt="post.imageAlt"
             :is-video="post.isVideo"
             :autoplay="post.isVideo"
-            :muted="true"
+            :muted="false"
             :controls="true"
             :loop="true"
           />

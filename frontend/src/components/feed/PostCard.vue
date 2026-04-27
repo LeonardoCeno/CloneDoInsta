@@ -132,18 +132,24 @@ function handleCommentSubmit() {
       </div>
     </header>
 
-    <RouterLink :to="postLink" class="feed-post__media-link">
+    <component
+      :is="post.isVideo ? 'div' : RouterLink"
+      v-bind="post.isVideo ? {} : { to: postLink }"
+      class="feed-post__media-link"
+    >
       <MediaDisplay
         class="feed-post__media"
         :src="post.imageUrl"
         :alt="post.imageAlt"
         :is-video="post.isVideo"
         :autoplay="post.isVideo"
-        :muted="true"
+        :autoplay-threshold="0.8"
+        :pause-threshold="0.2"
+        :muted="false"
         :controls="true"
         :loop="true"
       />
-    </RouterLink>
+    </component>
 
     <div class="feed-post__body">
       <div class="feed-post__toolbar">
