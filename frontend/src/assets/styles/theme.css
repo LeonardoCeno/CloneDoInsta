@@ -232,8 +232,11 @@ textarea::placeholder {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: clamp(0.4rem, 1.2vh, 1rem);
   width: 100%;
+  justify-content: flex-start;
+  overflow-y: auto;
+  scrollbar-width: none;
 }
 
 .ig-nav__icon-wrap {
