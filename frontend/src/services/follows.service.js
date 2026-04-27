@@ -1,7 +1,11 @@
+import { ref } from 'vue'
 import { api } from '@/services/api'
+
+export const lastFollowAt = ref(0)
 
 export async function follow(userId) {
   const { data } = await api.post(`/users/${userId}/follow`)
+  lastFollowAt.value = Date.now()
   return data
 }
 

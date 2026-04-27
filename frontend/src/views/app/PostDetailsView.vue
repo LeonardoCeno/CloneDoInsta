@@ -306,7 +306,7 @@ watch(
       </button>
 
       <!-- Modal card -->
-      <article v-else-if="post" class="pm-card">
+      <article v-if="post" class="pm-card">
 
         <!-- Left: media -->
         <div class="pm-media">
@@ -973,7 +973,8 @@ watch(
     height: 2rem;
   }
 
-  .pm-nav { display: none; }
+  .pm-nav--prev { display: none; }
+  .pm-nav--next { display: flex; right: 0.5rem; }
 
   /* Card centralizado com margem nos 4 lados */
   .pm-card {

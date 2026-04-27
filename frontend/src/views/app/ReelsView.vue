@@ -38,7 +38,7 @@ async function loadPosts({ reset = true } = {}) {
 
   try {
     const page = reset ? 1 : currentPage.value + 1
-    const response = await postsService.explore(12, page)
+    const response = await postsService.explore(27, page)
     const normalized = (response.data ?? []).map(normalizePost).filter(Boolean)
 
     posts.value = reset ? normalized : [...posts.value, ...normalized]
@@ -66,6 +66,8 @@ function goNext() {
     if (activeIndex.value >= posts.value.length - 3 && hasMore.value) {
       loadPosts({ reset: false })
     }
+  } else if (!hasMore.value && !isLoading.value) {
+    reloadReels()
   }
 }
 
@@ -295,6 +297,37 @@ watch(activeIndex, (newIdx, oldIdx) => {
   }
 })
 
+async function reloadReels() {
+  await loadPosts({ reset: true })
+  activeIndex.value = 0
+  await nextTick()
+  containerRef.value?.scrollTo({ top: 0, behavior: 'smooth' })
+  const first = getVideoAt(0)
+  if (first) {
+    applyVolumeToVideo(first)
+    first.play().catch(() => {})
+  }
+}
+
+let touchStartY = 0
+
+function onWheel(e) {
+  if (activeIndex.value === posts.value.length - 1 && !hasMore.value && !isLoading.value && e.deltaY > 0) {
+    reloadReels()
+  }
+}
+
+function onTouchStart(e) {
+  touchStartY = e.touches[0].clientY
+}
+
+function onTouchEnd(e) {
+  const deltaY = touchStartY - e.changedTouches[0].clientY
+  if (activeIndex.value === posts.value.length - 1 && !hasMore.value && !isLoading.value && deltaY > 40) {
+    reloadReels()
+  }
+}
+
 onMounted(async () => {
   await loadPosts({ reset: true })
   window.addEventListener('keydown', onKeydown)
@@ -312,7 +345,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div ref="containerRef" class="reels" @scroll.passive="onScroll">
+  <div ref="containerRef" class="reels" @scroll.passive="onScroll" @wheel.passive="onWheel" @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
     <!-- Loading skeleton -->
     <div v-if="isLoading && posts.length === 0" class="reels__skeletons">
       <div v-for="n in 3" :key="n" class="reels__skeleton-item" />
@@ -484,6 +517,17 @@ onUnmounted(() => {
     <div v-if="!isLoading && posts.length === 0" class="reels__empty">
       <p>Nenhum post disponível ainda.</p>
     </div>
+
+    <!-- Reload button after last reel -->
+    <div v-if="!isLoading && posts.length > 0 && !hasMore" class="reels__reload">
+      <button class="reels__reload-btn" type="button" :disabled="isLoading" @click="reloadReels">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        Recarregar
+      </button>
+    </div>
   </div>
 
   <!-- Nav: fixed right edge, centered vertically -->
@@ -500,7 +544,7 @@ onUnmounted(() => {
     <button
       class="reels-nav__btn reels-nav__btn--down"
       type="button"
-      :disabled="activeIndex === posts.length - 1 && !hasMore"
+      :disabled="false"
       aria-label="Próximo reel"
       @click="goNext"
     >
@@ -818,6 +862,38 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   color: var(--app-muted);
+}
+
+.reels__reload {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 0 3rem;
+}
+
+.reels__reload-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.4rem;
+  border: 1px solid var(--app-border);
+  border-radius: 2rem;
+  background: var(--app-surface-soft);
+  color: var(--app-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.reels__reload-btn:hover:not(:disabled) {
+  background: var(--app-border);
+  border-color: var(--app-border-strong);
+}
+
+.reels__reload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Play/pause flash */

@@ -1,5 +1,9 @@
+<script>
+export default { name: 'ExploreView' }
+</script>
+
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, onActivated, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import * as postsService from '@/services/posts.service'
 import { extractErrorMessage } from '@/services/api'
@@ -37,7 +41,13 @@ async function loadPosts({ reset = true } = {}) {
   }
 }
 
-onMounted(() => loadPosts({ reset: true }))
+function initPosts() {
+  if (posts.value.length > 0) return
+  loadPosts({ reset: true })
+}
+
+onMounted(initPosts)
+onActivated(initPosts)
 </script>
 
 <template>
@@ -49,10 +59,14 @@ onMounted(() => loadPosts({ reset: true }))
     <!-- Grid -->
     <div v-if="posts.length > 0" class="explore__grid">
       <RouterLink
-        v-for="post in posts"
+        v-for="(post, idx) in posts"
         :key="post.id"
         class="explore__tile"
-        :to="{ name: 'post-detalhes', params: { postId: post.id } }"
+        :to="{
+          name: 'post-detalhes',
+          params: { postId: post.id },
+          query: { ids: posts.map((p) => p.id).join(','), idx },
+        }"
         :aria-label="`Post de @${post.author.username}`"
       >
         <video

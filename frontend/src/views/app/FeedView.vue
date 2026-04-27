@@ -3,7 +3,7 @@ export default { name: 'FeedView' }
 </script>
 
 <script setup>
-import { onMounted, onActivated, ref } from 'vue'
+import { onMounted, onActivated, ref, watch } from 'vue'
 import PostCard from '@/components/feed/PostCard.vue'
 import StoriesBar from '@/components/stories/StoriesBar.vue'
 import StoryViewer from '@/components/stories/StoryViewer.vue'
@@ -12,6 +12,7 @@ import { extractErrorMessage } from '@/services/api'
 import { useStoriesStore } from '@/stores/stories'
 import * as repostsService from '@/services/reposts.service'
 import { useToastStore } from '@/stores/toast'
+import { lastFollowAt } from '@/services/follows.service'
 
 const storiesStore = useStoriesStore()
 const toastStore = useToastStore()
@@ -45,6 +46,12 @@ async function initFeed() {
 
 onMounted(initFeed)
 onActivated(initFeed)
+
+watch(lastFollowAt, (val) => {
+  if (!val) return
+  fetchFeed({ reset: true })
+  storiesStore.fetchFeed()
+})
 
 async function handleToggleLike(postId) {
   const post = feedPosts.value.find((item) => item.id === postId)
