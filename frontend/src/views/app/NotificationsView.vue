@@ -480,6 +480,39 @@ onMounted(async () => {
   font-size: 0.9rem;
 }
 
+/* ── Mobile ── */
+@media (max-width: 600px) {
+  .nv__tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .nv__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nv__tab {
+    padding: 0.65rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  .nv__item {
+    padding: 0.6rem 0.5rem;
+    gap: 0.6rem;
+  }
+
+  .nv__follow-actions {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+
+  .nv__btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.78rem;
+  }
+}
+
 /* ── Load more ── */
 .nv__more {
   display: flex;

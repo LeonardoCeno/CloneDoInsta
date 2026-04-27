@@ -34,8 +34,9 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config
 
-    // Only attempt refresh on 401, if we have a refresher, and haven't retried yet
-    if (error.response?.status === 401 && tokenRefresher && !original._retry) {
+    // Only attempt refresh on 401, if we have a refresher, haven't retried yet, and this isn't the refresh request itself
+    const isRefreshRequest = original.url?.includes('/auth/refresh')
+    if (error.response?.status === 401 && tokenRefresher && !original._retry && !isRefreshRequest) {
       original._retry = true
 
       try {

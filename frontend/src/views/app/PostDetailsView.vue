@@ -957,21 +957,67 @@ watch(
 
 /* ── Mobile ── */
 @media (max-width: 880px) {
+  .pm-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.75);
+  }
+
+  .pm-close {
+    top: 0.75rem;
+    right: 0.75rem;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 50%;
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .pm-nav { display: none; }
+
+  /* Card centralizado com margem nos 4 lados */
   .pm-card {
-    grid-template-columns: 1fr;
-    max-height: 95vh;
-    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-height: 90vh;
+    border-radius: 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* pm-side some como caixa — filhos viram flex items do pm-card */
+  .pm-side { display: contents; }
+
+  /* Ordem: header → imagem → body → actions → form */
+  .pm-head {
+    order: 1;
+    padding: 0.45rem 1rem;
+    border-bottom: 1px solid var(--app-border);
   }
 
   .pm-media {
-    min-height: 300px;
-    max-height: 50vh;
+    order: 2;
+    min-height: auto;
+    max-height: none;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
   }
 
-  .pm-side {
-    max-height: 45vh;
-    border-left: 0;
+  .pm-media__el { width: 100%; height: 100%; }
+
+  .pm-body {
+    order: 3;
+    max-height: 12vh;
+    overflow-y: auto;
     border-top: 1px solid var(--app-border);
   }
+
+  .pm-actions {
+    order: 4;
+    border-top: 1px solid var(--app-border);
+  }
+
+  .pm-comment-form { order: 5; }
 }
 </style>

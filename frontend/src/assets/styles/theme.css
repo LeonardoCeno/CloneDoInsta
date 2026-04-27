@@ -542,7 +542,7 @@ textarea::placeholder {
   }
 
   .ig-content {
-    padding: 1rem 0 0;
+    padding: calc(48px + 1rem) 0 0;
   }
 
   .ig-main,

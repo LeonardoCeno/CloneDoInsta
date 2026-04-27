@@ -40,13 +40,13 @@ const router = useRouter()
 const { currentUser, logout } = useAuth()
 
 const navItems = [
-  { name: 'feed',          label: 'Home',          icon: 'home'     },
-  { name: 'reels',         label: 'Reels',         icon: 'reels'    },
-  { name: 'explorar',      label: 'Explorar',      icon: 'discover' },
-  { name: 'descobrir',     label: 'Buscar',        icon: 'search'   },
-  { name: 'notificacoes',  label: 'Notificações',  icon: 'heart'    },
-  { name: 'criar',         label: 'Criar',         icon: 'create'   },
-  { name: 'salvos',        label: 'Salvos',        icon: 'save'     },
+  { name: 'feed',          label: 'Home',          icon: 'home'                   },
+  { name: 'reels',         label: 'Reels',         icon: 'reels',  mobileHide: true },
+  { name: 'explorar',      label: 'Explorar',      icon: 'discover'               },
+  { name: 'descobrir',     label: 'Buscar',        icon: 'search', mobileHide: true },
+  { name: 'notificacoes',  label: 'Notificações',  icon: 'heart',  mobileHide: true },
+  { name: 'criar',         label: 'Criar',         icon: 'create'                 },
+  { name: 'salvos',        label: 'Salvos',        icon: 'save',   mobileHide: true },
 ]
 
 const activeNavName = computed(() => route.meta.navItem ?? route.name)
@@ -145,11 +145,10 @@ async function handleDeleteAccount() {
   deletePending.value = true
   try {
     await deleteAccount(deletePassword.value)
-    await logout()
+    authStore.clearSession()
     router.replace({ name: 'login' })
   } catch (e) {
     deletePasswordError.value = e?.response?.data?.message ?? 'Senha incorreta.'
-  } finally {
     deletePending.value = false
   }
 }
@@ -189,7 +188,7 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
             :key="item.name"
             :to="{ name: item.name }"
             class="ig-nav__link"
-            :class="{ 'is-active': activeNavName === item.name }"
+            :class="{ 'is-active': activeNavName === item.name, 'ig-nav__link--mobile-hide': item.mobileHide }"
             :title="item.label"
           >
             <span class="ig-nav__icon-wrap">
@@ -232,6 +231,24 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
         </div>
       </aside>
 
+      <!-- Mobile topbar -->
+      <header class="ig-topbar">
+        <span class="ig-topbar__brand">Manya</span>
+        <div class="ig-topbar__actions">
+          <RouterLink class="ig-topbar__btn" :to="{ name: 'descobrir' }" aria-label="Buscar">
+            <AppIcon name="search" class="app-icon" />
+          </RouterLink>
+          <RouterLink class="ig-topbar__btn" :to="{ name: 'notificacoes' }" aria-label="Notificações">
+            <span class="ig-topbar__notif-wrap">
+              <AppIcon name="heart" class="app-icon" />
+              <span v-if="notificationsStore.unreadCount > 0" class="ig-topbar__badge">
+                {{ notificationsStore.unreadCount > 99 ? '99+' : notificationsStore.unreadCount }}
+              </span>
+            </span>
+          </RouterLink>
+        </div>
+      </header>
+
       <div class="ig-content">
         <main class="ig-main" :class="`ig-main--${contentMode}`">
           <component :is="Component" />
@@ -244,6 +261,13 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
           <div v-if="showMoreMenu" class="mais-backdrop" @click.self="closeMoreMenu">
             <div class="mais-panel" role="dialog" aria-label="Mais opções">
               <template v-if="!showDeleteConfirm">
+                <RouterLink class="mais-item" :to="{ name: 'salvos' }" @click="closeMoreMenu">
+                  <AppIcon name="save" />
+                  <span>Salvos</span>
+                </RouterLink>
+
+                <hr class="mais-divider" />
+
                 <button
                   class="mais-item"
                   type="button"
@@ -379,6 +403,81 @@ watch([() => currentUser.value?.id, isFeedRoute], loadSuggestions, { immediate: 
 </template>
 
 <style scoped>
+/* ── Mobile topbar ── */
+.ig-topbar {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .ig-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 39;
+    height: 48px;
+    padding: 0 1rem;
+    border-bottom: 1px solid var(--app-border);
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(10px);
+  }
+
+  .ig-topbar__brand {
+    font-family: 'Grand Hotel', cursive;
+    font-size: 1.6rem;
+    color: var(--app-text);
+    line-height: 1;
+  }
+
+  .ig-topbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .ig-topbar__btn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    color: var(--app-text);
+    text-decoration: none;
+  }
+
+  .ig-topbar__notif-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ig-topbar__badge {
+    position: absolute;
+    top: -5px;
+    right: -6px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 99px;
+    background: #e0245e;
+    color: #fff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 16px;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .ig-nav__link--mobile-hide {
+    display: none;
+  }
+}
+
 .mais-backdrop {
   position: fixed;
   inset: 0;
