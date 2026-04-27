@@ -17,7 +17,6 @@ import { lastFollowAt } from '@/services/follows.service'
 const storiesStore = useStoriesStore()
 const toastStore = useToastStore()
 
-const feedbackMessage = ref('')
 const loadError = ref('')
 
 const {
@@ -61,9 +60,7 @@ async function handleToggleLike(postId) {
 
   try {
     await toggleLike(post)
-    feedbackMessage.value = post.likedByMe ? 'Curtida removida.' : 'Post curtido.'
   } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível atualizar a curtida.')
   }
 }
 
@@ -84,9 +81,7 @@ async function handleToggleSave(postId) {
 async function handleSubmitComment(payload) {
   try {
     await addComment(payload.postId, payload.text)
-    feedbackMessage.value = 'Comentário enviado ao post.'
   } catch (error) {
-    feedbackMessage.value = extractErrorMessage(error, 'Não foi possível enviar o comentário.')
   }
 }
 
@@ -134,9 +129,6 @@ async function handleLoadMore() {
       {{ loadError }}
     </p>
 
-    <p v-if="feedbackMessage" class="feed-view__feedback" role="status">
-      {{ feedbackMessage }}
-    </p>
 
     <section v-if="feedPosts.length > 0" class="feed-view__stack" aria-label="Lista de posts">
       <PostCard
@@ -180,16 +172,6 @@ async function handleLoadMore() {
 .feed-view__stack {
   display: grid;
   gap: 0;
-}
-
-.feed-view__feedback {
-  margin: 0;
-  padding: 0.85rem 1rem;
-  border: 1px solid var(--app-border);
-  border-radius: 0.85rem;
-  color: var(--app-text);
-  font-weight: 600;
-  background: var(--app-surface-soft);
 }
 
 .feed-view__feedback.is-error {
